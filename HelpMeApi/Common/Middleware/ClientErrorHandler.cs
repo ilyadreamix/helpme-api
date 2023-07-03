@@ -30,12 +30,7 @@ public static class ClientErrorHandler
                     await context.Response.WriteAsJsonAsync(DefaultState.InvalidMethod);
                     return;
                 
-                case HttpStatusCode.OK:
-                    return;
-                
-                default:
-                    await next();
-                    break;
+                default: return;
             }
         });
     }

@@ -12,5 +12,9 @@ public enum StateCode
     UserDoesNotExist,
     Unauthorized,
     InvalidCredentials,
-    TooManyRequests
+    TooManyRequests,
+    TooYoung,
+    NicknameUnavailable,
+    InvalidIdToken,
+    EmailIsNotVerified
 }
