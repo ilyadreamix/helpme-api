@@ -1,4 +1,3 @@
-using System.Text;
 using System.Text.Json;
 using HelpMeApi.Account;
 using HelpMeApi.Common;
@@ -6,8 +5,6 @@ using HelpMeApi.Common.Auth;
 using HelpMeApi.Common.GoogleOAuth;
 using HelpMeApi.Common.Hash;
 using HelpMeApi.Common.Middleware;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.IdentityModel.Tokens;
 
 namespace HelpMeApi;
 
@@ -26,7 +23,7 @@ public class Startup
         
         services.AddDbContext<ApplicationDbContext>();
 
-        services.AddAuthentication(options =>
+        /* services.AddAuthentication(options =>
         {
             options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
             options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -48,7 +45,7 @@ public class Startup
                     ValidateIssuerSigningKey = true
                 };
             });
-        services.AddAuthorization();
+        services.AddAuthorization(); */
 
         services.Configure<AuthSettings>(_configuration.GetSection("Auth"));
         services.AddSingleton<AuthService>();
@@ -68,6 +65,8 @@ public class Startup
                 options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
             });
         services.ConfigureValidationErrorHandler();
+
+        services.AddControllers();
     }
 
     public void Configure(IApplicationBuilder application, IWebHostEnvironment environment, ApplicationDbContext dbContext)
@@ -76,12 +75,13 @@ public class Startup
         
         application.ConfigureExceptionHandler();
         application.ConfigureClientErrorHandler();
-
         
         // application.UseHttpsRedirection();
         application.UseRouting();
-        application.UseAuthentication();
-        application.UseAuthorization();
+        application.UseMiddleware<AuthMiddleware>();
         application.UseEndpoints(endpoints => endpoints.MapControllers());
+
+        /* application.UseAuthentication();
+        application.UseAuthorization(); */
     }
 }

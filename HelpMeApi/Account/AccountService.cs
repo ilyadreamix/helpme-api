@@ -7,7 +7,7 @@ using HelpMeApi.Common.GoogleOAuth;
 using HelpMeApi.Common.Hash;
 using HelpMeApi.Common.State;
 using HelpMeApi.Common.State.Model;
-using HelpMeApi.Profile.Entity;
+using HelpMeApi.Profile;
 using HelpMeApi.Profile.Model;
 using Microsoft.EntityFrameworkCore;
 
@@ -113,10 +113,10 @@ public class AccountService
             : new ValueTuple<StateCode, AccountEntity?>(StateCode.Ok, account);
     }
 
-    public async Task SignOut(string userId, string sessionId)
+    public async Task SignOut(string userId, string tokenId)
     {
         var account = await _dbContext.Accounts.SingleOrDefaultAsync(account => account.Id == Guid.Parse(userId));
-        account!.DisabledSessionIds.Add(sessionId);
+        account!.DisabledSessionIds.Add(tokenId);
         await _dbContext.SaveChangesAsync();
     }
     

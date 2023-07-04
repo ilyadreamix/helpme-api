@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using HelpMeApi.Account;
 
-namespace HelpMeApi.Profile.Entity;
+namespace HelpMeApi.Profile;
 
 public class ProfileEntity
 {

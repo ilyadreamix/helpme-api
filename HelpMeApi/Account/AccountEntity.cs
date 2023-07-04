@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using HelpMeApi.Account.Enum;
-using HelpMeApi.Profile.Entity;
+using HelpMeApi.Profile;
 
 namespace HelpMeApi.Account;
 

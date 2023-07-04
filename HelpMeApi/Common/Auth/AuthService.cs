@@ -38,4 +38,36 @@ public class AuthService
 
         return handler.WriteToken(token);
     }
+
+    public (bool, ClaimsPrincipal?) ValidateJwtToken(string token)
+    {
+        var key = Encoding.UTF8.GetBytes(_authSettings.JwtKey);
+        
+        var validationParams = new TokenValidationParameters
+        {
+            ValidIssuer = _authSettings.JwtIssuer,
+            ValidAudience = _authSettings.JwtAudience,
+            IssuerSigningKey = new SymmetricSecurityKey(key),
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateIssuerSigningKey = true
+        };
+
+        var validator = new JwtSecurityTokenHandler();
+
+        if (!validator.CanReadToken(token))
+        {
+            return new ValueTuple<bool, ClaimsPrincipal?>(false, null);
+        }
+
+        try
+        {
+            var principal = validator.ValidateToken(token, validationParams, out _)!;
+            return new ValueTuple<bool, ClaimsPrincipal?>(true, principal);
+        }
+        catch
+        {
+            return new ValueTuple<bool, ClaimsPrincipal?>(false, null);
+        }
+    }
 }

@@ -35,4 +35,10 @@ public static class DefaultState
         Code = (int)StateCode.InvalidMethod,
         State = StateCode.InvalidMethod.ToString()
     };
+    
+    public static readonly StateModel<JsonObject> Unauthorized = new()
+    {
+        Code = (int)StateCode.Unauthorized,
+        State = StateCode.Unauthorized.ToString()
+    };
 }

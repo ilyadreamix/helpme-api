@@ -1,5 +1,5 @@
 using HelpMeApi.Account;
-using HelpMeApi.Profile.Entity;
+using HelpMeApi.Profile;
 using Microsoft.EntityFrameworkCore;
 
 namespace HelpMeApi.Common;
