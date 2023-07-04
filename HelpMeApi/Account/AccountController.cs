@@ -1,9 +1,7 @@
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
+using System.Net;
 using HelpMeApi.Account.Model.Request;
 using HelpMeApi.Common.Auth;
 using HelpMeApi.Common.State;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace HelpMeApi.Account;
@@ -23,7 +21,13 @@ public class AccountController : ControllerBase
     public async Task<IActionResult> SignUp([FromBody] AccountSignUpRequestModel body)
     {
         var (resultState, account) = await _accountService.SignUp(body);
+
+        if (resultState != StateCode.Ok)
+        {
+            HttpContext.Response.StatusCode = (int)HttpStatusCode.BadRequest;
+        }
         var state = _accountService.ParseAccountResponseState(resultState, account);
+        
         return new JsonResult(state);
     }
     
@@ -31,12 +35,18 @@ public class AccountController : ControllerBase
     public async Task<IActionResult> SignIn([FromBody] AccountSignInRequestModel body)
     {
         var (resultState, account) = await _accountService.SignIn(body);
+
+        if (resultState != StateCode.Ok)
+        {
+            HttpContext.Response.StatusCode = (int)HttpStatusCode.BadRequest;
+        }
         var state = _accountService.ParseAccountResponseState(resultState, account);
+        
         return new JsonResult(state);
     }
     
     [HttpPost("sign-out")]
-    [AuthRequired]
+    [AuthRequired(ForbidBanned = false)]
     public new async Task<IActionResult> SignOut()
     {
         var account = (AccountEntity)HttpContext.Items["Account"]!;
@@ -45,5 +55,14 @@ public class AccountController : ControllerBase
         await _accountService.SignOut(account.Id.ToString(), tokenId);
 
         return new JsonResult(DefaultState.Ok);
+    }
+    
+    [HttpPost("delete")]
+    [AuthRequired(ForbidBanned = false)]
+    public async Task<IActionResult> Delete([FromBody] AccountDeleteRequestModel body)
+    {
+        var account = (AccountEntity)HttpContext.Items["Account"]!;
+        var result = await _accountService.Delete(body, account);
+        return new JsonResult(result);
     }
 }

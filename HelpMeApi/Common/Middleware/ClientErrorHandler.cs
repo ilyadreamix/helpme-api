@@ -19,8 +19,10 @@ public static class ClientErrorHandler
                     await context.Response.WriteAsJsonAsync(DefaultState.ContentNotFound);
                     return;
                 
+                case HttpStatusCode.UnsupportedMediaType:
+                case HttpStatusCode.UnprocessableEntity:
                 case HttpStatusCode.BadRequest:
-                    if (!context.Response.HasStarted) // ValidationErrorHandler is invoked
+                    if (!context.Response.HasStarted)
                     {
                         await context.Response.WriteAsJsonAsync(DefaultState.InvalidRequest);
                     }

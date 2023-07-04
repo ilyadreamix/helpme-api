@@ -7,10 +7,9 @@ using Microsoft.Net.Http.Headers;
 
 namespace HelpMeApi.Common.Auth
 {
-    [AttributeUsage(AttributeTargets.Method)]
     public class AuthRequired : Attribute
     {
-        // ...
+        public bool ForbidBanned { get; set; } = true;
     }
 
     public class AuthMiddleware
@@ -88,6 +87,13 @@ namespace HelpMeApi.Common.Auth
             {
                 context.Response.StatusCode = (int)HttpStatusCode.Unauthorized;
                 await context.Response.WriteAsJsonAsync(DefaultState.Unauthorized);
+                return;
+            }
+
+            if (account.IsBanned && decorator.ForbidBanned)
+            {
+                context.Response.StatusCode = (int)HttpStatusCode.Forbidden;
+                await context.Response.WriteAsJsonAsync(DefaultState.YouAreBanned);
                 return;
             }
 

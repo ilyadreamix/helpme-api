@@ -16,5 +16,6 @@ public enum StateCode
     TooYoung,
     NicknameUnavailable,
     InvalidIdToken,
-    EmailIsNotVerified
+    EmailIsNotVerified,
+    YouAreBanned
 }

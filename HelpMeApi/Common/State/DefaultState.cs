@@ -41,4 +41,16 @@ public static class DefaultState
         Code = (int)StateCode.Unauthorized,
         State = StateCode.Unauthorized.ToString()
     };
+    
+    public static readonly StateModel<JsonObject> YouAreBanned = new()
+    {
+        Code = (int)StateCode.YouAreBanned,
+        State = StateCode.YouAreBanned.ToString()
+    };
+    
+    public static readonly StateModel<JsonObject> InvalidCredentials = new()
+    {
+        Code = (int)StateCode.InvalidCredentials,
+        State = StateCode.InvalidCredentials.ToString()
+    };
 }

@@ -1,3 +1,4 @@
+using System.Text.Json.Nodes;
 using HelpMeApi.Account.Model;
 using HelpMeApi.Account.Model.Request;
 using HelpMeApi.Account.Model.Response;
@@ -119,7 +120,23 @@ public class AccountService
         account!.DisabledSessionIds.Add(tokenId);
         await _dbContext.SaveChangesAsync();
     }
-    
+
+    public async Task<StateModel<JsonObject>> Delete(
+        AccountDeleteRequestModel body,
+        AccountEntity account)
+    {
+        if (_hashService.ComputePinCodeHash(body.PinCode) != account.PinCodeHash)
+        {
+            return DefaultState.InvalidCredentials;
+        }
+
+        await _dbContext.Accounts
+            .Where(dbAccount => dbAccount.Id == account.Id)
+            .ExecuteDeleteAsync();
+
+        return DefaultState.Ok;
+    }
+
     public StateModel<AccountResponseModel> ParseAccountResponseState(StateCode resultState, AccountEntity? account)
     {
         if (resultState == StateCode.Ok)

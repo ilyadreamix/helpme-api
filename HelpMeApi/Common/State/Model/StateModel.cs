@@ -2,7 +2,7 @@ using System.Text.Json.Serialization;
 
 namespace HelpMeApi.Common.State.Model;
 
-public class StateModel<T> : BaseStateModel
+public class StateModel<T> : StateModelBase
 {
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public T? Data { get; set; }
