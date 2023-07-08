@@ -1,51 +1,39 @@
-using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 
 namespace HelpMeApi.Common.GoogleOAuth.Model;
 
 public class GoogleOAuthIdTokenModel
 {
-    [Required]
     [JsonPropertyName("iss")]
-    public string? Issuer { get; set; }
+    public string Issuer { get; set; } = null!;
     
-    [Required]
     [JsonPropertyName("sub")]
-    public string? Subject { get; set; }
+    public string Subject { get; set; } = null!;
     
-    [Required]
     [JsonPropertyName("aud")]
-    public string? Audience { get; set; }
+    public string Audience { get; set; } = null!;
     
-    [Required]
     [JsonPropertyName("iat")]
-    public string? IssuedAtTime { get; set; }
+    public string IssuedAtTime { get; set; } = null!;
     
-    [Required]
     [JsonPropertyName("exp")]
-    public string? ExpirationTime { get; set; }
+    public string ExpirationTime { get; set; } = null!;
     
-    [Required]
     [JsonPropertyName("email")]
-    public string? Email { get; set; }
+    public string Email { get; set; } = null!;
     
-    [Required]
     [JsonPropertyName("email_verified")]
-    public string? EmailVerified { get; set; }
+    public string EmailVerified { get; set; } = null!;
     
-    [Required]
     [JsonPropertyName("name")]
-    public string? Name { get; set; }
+    public string Name { get; set; } = null!;
     
-    [Required]
     [JsonPropertyName("picture")]
-    public string? Picture { get; set; }
+    public string Picture { get; set; } = null!;
     
-    [Required]
     [JsonPropertyName("given_name")]
-    public string? GivenName { get; set; }
+    public string GivenName { get; set; } = null!;
     
-    [Required]
     [JsonPropertyName("family_name")]
-    public string? FamilyName { get; set; }
+    public string FamilyName { get; set; } = null!;
 }

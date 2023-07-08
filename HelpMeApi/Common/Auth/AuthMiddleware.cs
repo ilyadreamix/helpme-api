@@ -5,102 +5,102 @@ using HelpMeApi.Common.State;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Net.Http.Headers;
 
-namespace HelpMeApi.Common.Auth
+namespace HelpMeApi.Common.Auth;
+
+[AttributeUsage(AttributeTargets.Class | AttributeTargets.Method)]
+public class AuthRequired : Attribute
 {
-    public class AuthRequired : Attribute
+    public bool ForbidBanned { get; set; } = true;
+}
+
+public class AuthMiddleware
+{
+    private readonly RequestDelegate _next;
+
+    public AuthMiddleware(RequestDelegate next)
     {
-        public bool ForbidBanned { get; set; } = true;
+        _next = next;
     }
 
-    public class AuthMiddleware
+    public async Task InvokeAsync(
+        HttpContext context,
+        AuthService authService,
+        ApplicationDbContext dbContext)
     {
-        private readonly RequestDelegate _next;
+        var endpoint = context.GetEndpoint();
+        var decorator = endpoint?.Metadata.GetMetadata<AuthRequired>();
 
-        public AuthMiddleware(RequestDelegate next)
+        if (decorator is null)
         {
-            _next = next;
-        }
-
-        public async Task InvokeAsync(
-            HttpContext context,
-            AuthService authService,
-            ApplicationDbContext dbContext)
-        {
-            var endpoint = context.GetEndpoint();
-            var decorator = endpoint?.Metadata.GetMetadata<AuthRequired>();
-
-            if (decorator is null)
-            {
-                await _next.Invoke(context);
-                return;
-            }
-
-            var headers = context.Request.Headers;
-            var isAuthHeaderPresent = headers.TryGetValue(HeaderNames.Authorization, out var authHeader);
-
-            if (!isAuthHeaderPresent)
-            {
-                context.Response.StatusCode = (int)HttpStatusCode.Unauthorized;
-                await context.Response.WriteAsJsonAsync(DefaultState.Unauthorized);
-                return;
-            }
-
-            var token = authHeader!.ToString().Split(" ").ElementAtOrDefault(1);
-
-            if (token is null)
-            {
-                context.Response.StatusCode = (int)HttpStatusCode.Unauthorized;
-                await context.Response.WriteAsJsonAsync(DefaultState.Unauthorized);
-                return;
-            }
-            
-            var (isTokenValid, claims) = authService.ValidateJwtToken(token);
-
-            if (!isTokenValid)
-            {
-                context.Response.StatusCode = (int)HttpStatusCode.Unauthorized;
-                await context.Response.WriteAsJsonAsync(DefaultState.Unauthorized);
-                return;
-            }
-
-            var userId = claims!.FindFirst(claim => claim.Type == ClaimTypes.NameIdentifier);
-            var tokenId = claims.FindFirst(claim => claim.Type == JwtRegisteredClaimNames.Jti);
-
-            if (userId is null || tokenId is null)
-            {
-                context.Response.StatusCode = (int)HttpStatusCode.Unauthorized;
-                await context.Response.WriteAsJsonAsync(DefaultState.Unauthorized);
-                return;
-            }
-
-            var account = await dbContext.Accounts.SingleOrDefaultAsync(account =>
-                account.Id == Guid.Parse(userId.Value));
-            
-            if (account is null)
-            {
-                context.Response.StatusCode = (int)HttpStatusCode.Unauthorized;
-                await context.Response.WriteAsJsonAsync(DefaultState.Unauthorized);
-                return;
-            }
-
-            if (account.DisabledSessionIds.Contains(tokenId.Value))
-            {
-                context.Response.StatusCode = (int)HttpStatusCode.Unauthorized;
-                await context.Response.WriteAsJsonAsync(DefaultState.Unauthorized);
-                return;
-            }
-
-            if (account.IsBanned && decorator.ForbidBanned)
-            {
-                context.Response.StatusCode = (int)HttpStatusCode.Forbidden;
-                await context.Response.WriteAsJsonAsync(DefaultState.YouAreBanned);
-                return;
-            }
-
-            context.Items["Account"] = account;
-            context.Items["TokenId"] = tokenId.Value;
-
             await _next.Invoke(context);
+            return;
         }
+
+        var headers = context.Request.Headers;
+        var isAuthHeaderPresent = headers.TryGetValue(HeaderNames.Authorization, out var authHeader);
+
+        if (!isAuthHeaderPresent)
+        {
+            context.Response.StatusCode = (int)HttpStatusCode.Unauthorized;
+            await context.Response.WriteAsJsonAsync(DefaultState.Unauthorized);
+            return;
+        }
+
+        var token = authHeader!.ToString().Split(" ").ElementAtOrDefault(1);
+
+        if (token is null)
+        {
+            context.Response.StatusCode = (int)HttpStatusCode.Unauthorized;
+            await context.Response.WriteAsJsonAsync(DefaultState.Unauthorized);
+            return;
+        }
+            
+        var (isTokenValid, claims) = authService.ValidateJwtToken(token);
+
+        if (!isTokenValid)
+        {
+            context.Response.StatusCode = (int)HttpStatusCode.Unauthorized;
+            await context.Response.WriteAsJsonAsync(DefaultState.Unauthorized);
+            return;
+        }
+
+        var userId = claims!.FindFirst(claim => claim.Type == ClaimTypes.NameIdentifier);
+        var tokenId = claims.FindFirst(claim => claim.Type == JwtRegisteredClaimNames.Jti);
+
+        if (userId is null || tokenId is null)
+        {
+            context.Response.StatusCode = (int)HttpStatusCode.Unauthorized;
+            await context.Response.WriteAsJsonAsync(DefaultState.Unauthorized);
+            return;
+        }
+
+        var user = await dbContext.Users.SingleOrDefaultAsync(user =>
+            user.Id == Guid.Parse(userId.Value));
+            
+        if (user is null)
+        {
+            context.Response.StatusCode = (int)HttpStatusCode.Unauthorized;
+            await context.Response.WriteAsJsonAsync(DefaultState.Unauthorized);
+            return;
+        }
+
+        if (user.DisabledSessionIds.Contains(tokenId.Value))
+        {
+            context.Response.StatusCode = (int)HttpStatusCode.Unauthorized;
+            await context.Response.WriteAsJsonAsync(DefaultState.Unauthorized);
+            return;
+        }
+
+        if (user.IsBanned && decorator.ForbidBanned)
+        {
+            context.Response.StatusCode = (int)HttpStatusCode.Forbidden;
+            await context.Response.WriteAsJsonAsync(DefaultState.YouAreBanned);
+            return;
+        }
+
+        context.Items["User"] = user;
+        context.Items["TokenId"] = tokenId.Value;
+
+        await _next.Invoke(context);
     }
 }

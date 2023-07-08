@@ -1,10 +1,11 @@
 using System.Text.Json;
-using HelpMeApi.Account;
+using HelpMeApi.Chat;
 using HelpMeApi.Common;
 using HelpMeApi.Common.Auth;
 using HelpMeApi.Common.GoogleOAuth;
 using HelpMeApi.Common.Hash;
 using HelpMeApi.Common.Middleware;
+using HelpMeApi.User;
 
 namespace HelpMeApi;
 
@@ -19,33 +20,10 @@ public class Startup
 
     public void ConfigureServices(IServiceCollection services)
     {
+    
+        services.AddHttpContextAccessor();
         services.AddSingleton<HttpClient>();
-        
         services.AddDbContext<ApplicationDbContext>();
-
-        /* services.AddAuthentication(options =>
-        {
-            options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-            options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-            options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
-        })
-            .AddJwtBearer(options =>
-            {
-                var issuer = _configuration["Auth:JwtIssuer"];
-                var audience = _configuration["Auth:JwtAudience"];
-                var key = Encoding.UTF8.GetBytes(_configuration["Auth:JwtKey"]!);
-                
-                options.TokenValidationParameters = new TokenValidationParameters
-                {
-                    ValidIssuer = issuer,
-                    ValidAudience = audience,
-                    IssuerSigningKey = new SymmetricSecurityKey(key),
-                    ValidateIssuer = true,
-                    ValidateAudience = true,
-                    ValidateIssuerSigningKey = true
-                };
-            });
-        services.AddAuthorization(); */
 
         services.Configure<AuthSettings>(_configuration.GetSection("Auth"));
         services.AddSingleton<AuthService>();
@@ -56,7 +34,8 @@ public class Startup
         services.Configure<GoogleOAuthSettings>(_configuration.GetSection("GoogleOAuth"));
         services.AddSingleton<GoogleOAuthService>();
 
-        services.AddScoped<AccountService>();
+        services.AddScoped<UserService>();
+        services.AddScoped<ChatService>();
         
         services
             .AddControllers()
@@ -65,8 +44,6 @@ public class Startup
                 options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
             });
         services.ConfigureValidationErrorHandler();
-
-        services.AddControllers();
     }
 
     public void Configure(IApplicationBuilder application, IWebHostEnvironment environment, ApplicationDbContext dbContext)
@@ -79,9 +56,7 @@ public class Startup
         // application.UseHttpsRedirection();
         application.UseRouting();
         application.UseMiddleware<AuthMiddleware>();
+        application.UseWebSockets();
         application.UseEndpoints(endpoints => endpoints.MapControllers());
-
-        /* application.UseAuthentication();
-        application.UseAuthorization(); */
     }
 }

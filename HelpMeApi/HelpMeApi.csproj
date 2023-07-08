@@ -5,6 +5,8 @@
         <ImplicitUsings>enable</ImplicitUsings>
     </PropertyGroup>
     <ItemGroup>
+      <PackageReference Include="CoreAdmin" Version="2.7.0" />
+      <PackageReference Include="FirebaseAdmin" Version="2.3.0" />
       <PackageReference Include="IdentityModel" Version="6.1.0" />
       <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="7.0.8" />
       <PackageReference Include="Microsoft.EntityFrameworkCore" Version="7.0.8" />
@@ -19,6 +21,7 @@
         <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       </PackageReference>
       <PackageReference Include="Microsoft.IdentityModel.Tokens" Version="6.31.0" />
+      <PackageReference Include="MSBuild.Microsoft.VisualStudio.Web.targets" Version="14.0.0.3" />
       <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="7.0.4" />
       <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL.Design" Version="1.1.0" />
       <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="6.31.0" />

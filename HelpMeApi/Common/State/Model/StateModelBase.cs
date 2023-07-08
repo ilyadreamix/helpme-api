@@ -5,10 +5,5 @@ public class StateModelBase
     public int Code { get; set; }
     public string State { get; set; } = default!;
     public bool HasError { get; set; } = true;
-    public long Timestamp { get; set; }
-
-    protected StateModelBase()
-    {
-        Timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-    }
+    public long Timestamp => DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 }

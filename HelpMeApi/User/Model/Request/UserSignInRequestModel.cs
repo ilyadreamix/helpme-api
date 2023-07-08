@@ -1,8 +1,8 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace HelpMeApi.Account.Model.Request;
+namespace HelpMeApi.User.Model.Request;
 
-public class AccountSignInRequestModel
+public class UserSignInRequestModel
 {
     public string OAuthIdToken { get; set; } = null!;
 

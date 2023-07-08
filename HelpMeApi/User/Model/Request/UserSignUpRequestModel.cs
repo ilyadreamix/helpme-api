@@ -1,8 +1,8 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace HelpMeApi.Account.Model.Request;
+namespace HelpMeApi.User.Model.Request;
 
-public class AccountSignUpRequestModel
+public class UserSignUpRequestModel
 {
     public string OAuthIdToken { get; set; } = null!;
 
@@ -16,5 +16,6 @@ public class AccountSignUpRequestModel
     [MaxLength(36)]
     public string Nickname { get; set; } = null!;
     
+    [Range(1, 100)]
     public int? Age { get; set; }
 }

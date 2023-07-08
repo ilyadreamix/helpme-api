@@ -1,5 +1,6 @@
-using HelpMeApi.Account;
-using HelpMeApi.Profile;
+using HelpMeApi.Chat.Entity;
+using HelpMeApi.User.Entity;
+using HelpMeApi.Topic.Entity;
 using Microsoft.EntityFrameworkCore;
 
 namespace HelpMeApi.Common;
@@ -15,10 +16,39 @@ public class ApplicationDbContext : DbContext
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
-        optionsBuilder.UseLazyLoadingProxies();
         optionsBuilder.UseNpgsql(_configuration.GetConnectionString("Db"));
     }
 
-    public DbSet<AccountEntity> Accounts { get; set; } = null!;
-    public DbSet<ProfileEntity> Profiles { get; set; } = null!;
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<UserEntity>()
+            .HasMany(a => a.Chats)
+            .WithMany(c => c.JoinedUsers)
+            .UsingEntity<UserChatRelationEntity>(
+                j => j.HasOne(ac => ac.Chat).WithMany(),
+                j => j.HasOne(ac => ac.User).WithMany())
+            .ToTable("UserChatRelation");
+
+        modelBuilder.Entity<ChatEntity>()
+            .HasOne(c => c.Creator)
+            .WithMany()
+            .HasForeignKey(c => c.CreatorId);
+        
+        modelBuilder.Entity<TopicEntity>()
+            .HasMany(t => t.Users)
+            .WithMany(p => p.Topics)
+            .UsingEntity(j => j.ToTable("UserTopic"));
+
+        modelBuilder.Entity<TopicEntity>()
+            .HasMany(t => t.Chats)
+            .WithMany(c => c.Topics)
+            .UsingEntity(j => j.ToTable("ChatTopic"));
+
+        base.OnModelCreating(modelBuilder);
+    }
+
+    public DbSet<UserEntity> Users { get; set; } = null!;
+    public DbSet<ChatEntity> Chats { get; set; } = null!;
+    public DbSet<ChatMessageEntity> ChatMessages { get; set; } = null!;
+    public DbSet<TopicEntity> Topics { get; set; } = null!;
 }

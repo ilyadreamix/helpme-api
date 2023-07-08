@@ -4,13 +4,13 @@ namespace HelpMeApi;
 
 public static class Program
 {
-    public static void Main(string[] arguments)
+    public static async Task Main(string[] arguments)
     {
         var webHost = WebHost
             .CreateDefaultBuilder(arguments)
             .UseStartup<Startup>()
             .Build();
         
-        webHost.Run();
+        await webHost.RunAsync();
     }
 }

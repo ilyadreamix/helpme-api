@@ -11,11 +11,11 @@ public static class ValidationErrorHandler
         services.PostConfigure<ApiBehaviorOptions>(options =>
         {
             options.SuppressMapClientErrors = true;
-            options.InvalidModelStateResponseFactory = (context =>
+            options.InvalidModelStateResponseFactory = context =>
             {
                 context.HttpContext.Response.StatusCode = (int)HttpStatusCode.BadRequest;
                 return new JsonResult(DefaultState.InvalidRequest);
-            });
+            };
         });
     }
 }
