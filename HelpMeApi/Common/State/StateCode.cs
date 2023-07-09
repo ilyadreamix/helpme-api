@@ -18,5 +18,7 @@ public enum StateCode
     InvalidIdToken,
     EmailIsNotVerified,
     YouAreBanned,
-    NoRights
+    NoRights,
+    InvalidAction,
+    YouCantBanYourself
 }
