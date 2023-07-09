@@ -93,10 +93,10 @@ public class ModerationService
                 switch (action)
                 {
                     case ModerationAction.Ban:
-                        if (moderator.Id == user.Id)
+                        if (moderator.Id == user.Id) // This can only be attempted by third party clients
                         {
                             _contextAccessor.HttpContext!.Response.StatusCode = (int)HttpStatusCode.Forbidden;
-                            return StateModel<ModerationModel>.ParseFrom(StateCode.YouCantBanYourself);
+                            return StateModel<ModerationModel>.ParseFrom(StateCode.YouCantLimitYourself);
                         }
                         
                         if (moderator.Role == UserRole.Moderator &&
@@ -121,10 +121,30 @@ public class ModerationService
                         break;
                     
                     case ModerationAction.Hide:
+                        if (moderator.Id == user.Id) // This can only be attempted by third party clients
+                        {
+                            _contextAccessor.HttpContext!.Response.StatusCode = (int)HttpStatusCode.Forbidden;
+                            return StateModel<ModerationModel>.ParseFrom(StateCode.YouCantLimitYourself);
+                        }
+                        
+                        if (moderator.Role == UserRole.Moderator &&
+                            user.Role > UserRole.Default)
+                        {
+                            _contextAccessor.HttpContext!.Response.StatusCode = (int)HttpStatusCode.Forbidden;
+                            return StateModel<ModerationModel>.ParseFrom(StateCode.NoRights);
+                        }
+                        
                         user.IsHidden = true;
                         break;
                     
                     case ModerationAction.Show:
+                        if (moderator.Role == UserRole.Moderator &&
+                            user.Role > UserRole.Default)
+                        {
+                            _contextAccessor.HttpContext!.Response.StatusCode = (int)HttpStatusCode.Forbidden;
+                            return StateModel<ModerationModel>.ParseFrom(StateCode.NoRights);
+                        }
+                        
                         user.IsHidden = false;
                         break;
                     

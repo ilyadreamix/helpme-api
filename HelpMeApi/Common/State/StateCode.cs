@@ -20,5 +20,5 @@ public enum StateCode
     YouAreBanned,
     NoRights,
     InvalidAction,
-    YouCantBanYourself
+    YouCantLimitYourself
 }
