@@ -19,19 +19,17 @@ public class UserService
     private readonly GoogleOAuthService _oauthService;
     private readonly HashService _hashService;
     private readonly AuthService _authService;
-    private readonly IHttpContextAccessor _contextAccessor;
 
     public UserService(
         ApplicationDbContext dbContext,
         GoogleOAuthService oauthService,
         HashService hashService,
-        AuthService authService, IHttpContextAccessor contextAccessor)
+        AuthService authService)
     {
         _dbContext = dbContext;
         _oauthService = oauthService;
         _hashService = hashService;
         _authService = authService;
-        _contextAccessor = contextAccessor;
     }
     
     public async Task<(StateCode, UserEntity?)> SignUp(UserSignUpRequestModel body)

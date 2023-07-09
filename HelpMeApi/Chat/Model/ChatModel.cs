@@ -8,8 +8,6 @@ public class ChatModel
     public Guid Id { get; set; }
     
     public UserPublicModel Creator { get; set; } = null!;
-    public List<UserPublicModel> JoinedUsers { get; set; } = new();
-    public List<ChatMessageModel> Messages { get; set; } = new();
     public List<TopicModel> Topics { get; set; } = new();
     
     public string Title { get; set; } = null!;

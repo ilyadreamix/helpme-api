@@ -11,5 +11,6 @@ public class ModerationModel
     public Guid ActionId { get; set; }
     public Guid ObjectId { get; set; }
     public UserPublicModel Moderator { get; set; } = null!;
+    public List<string> Extras { get; set; } = null!;
     public long CreatedAt { get; set; }
 }

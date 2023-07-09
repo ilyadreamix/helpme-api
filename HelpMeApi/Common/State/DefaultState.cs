@@ -59,4 +59,58 @@ public static class DefaultState
         Code = (int)StateCode.NoRights,
         State = StateCode.NoRights.ToString()
     };
+    
+    public static readonly StateModel<JsonObject> YouHaveAlreadyJoinedThisChat = new()
+    {
+        Code = (int)StateCode.YouHaveAlreadyJoinedThisChat,
+        State = StateCode.YouHaveAlreadyJoinedThisChat.ToString()
+    };
+    
+    public static readonly StateModel<JsonObject> YouAreBannedInThisChat = new()
+    {
+        Code = (int)StateCode.YouAreBannedInThisChat,
+        State = StateCode.YouAreBannedInThisChat.ToString()
+    };
+    
+    public static readonly StateModel<JsonObject> ThisChatIsDisabled = new()
+    {
+        Code = (int)StateCode.ThisChatIsDisabled,
+        State = StateCode.ThisChatIsDisabled.ToString()
+    };
+    
+    public static readonly StateModel<JsonObject> YouWasNotInvitedToThisChat = new()
+    {
+        Code = (int)StateCode.YouWasNotInvitedToThisChat,
+        State = StateCode.YouWasNotInvitedToThisChat.ToString()
+    };
+    
+    public static readonly StateModel<JsonObject> UserDoesNotExist = new()
+    {
+        Code = (int)StateCode.UserDoesNotExist,
+        State = StateCode.UserDoesNotExist.ToString()
+    };
+    
+    public static readonly StateModel<JsonObject> UserHasAlreadyJoinedThisChat = new()
+    {
+        Code = (int)StateCode.UserHasAlreadyJoinedThisChat,
+        State = StateCode.UserHasAlreadyJoinedThisChat.ToString()
+    };
+    
+    public static readonly StateModel<JsonObject> UserWasAlreadyInvited = new()
+    {
+        Code = (int)StateCode.UserWasAlreadyInvited,
+        State = StateCode.UserWasAlreadyInvited.ToString()
+    };
+    
+    public static readonly StateModel<JsonObject> YouCannotEditThisChat = new()
+    {
+        Code = (int)StateCode.YouCannotEditThisChat,
+        State = StateCode.YouCannotEditThisChat.ToString()
+    };
+    
+    public static readonly StateModel<JsonObject> UnbanUserToInvite = new()
+    {
+        Code = (int)StateCode.UnbanUserToInvite,
+        State = StateCode.UnbanUserToInvite.ToString()
+    };
 }

@@ -1,8 +1,10 @@
 using System.Net;
+using HelpMeApi.Chat.Entity.Json;
 using HelpMeApi.Common;
 using HelpMeApi.Common.Enum;
 using HelpMeApi.Common.State;
 using HelpMeApi.Common.State.Model;
+using HelpMeApi.Common.Utility;
 using HelpMeApi.Moderation.Enum;
 using HelpMeApi.Moderation.Model;
 using HelpMeApi.Moderation.Model.Request;
@@ -29,7 +31,8 @@ public class ModerationService
         await _PerformAction(
             objectId: Guid.Parse(body.ObjectId),
             objectType: body.ObjectType,
-            action: body.Action);
+            action: body.Action,
+            extras: body.Extras);
 
     public async Task<StateModel<ModerationModel>> Get(Guid id)
     {
@@ -44,18 +47,19 @@ public class ModerationService
     }
 
     public async Task<StateModel<List<ModerationModel>>> List(
+        int offset,
+        int size,
         Guid? moderatorId,
-        Guid? objectId,
+        Guid objectId,
         ModerationAction? action,
         OrderingMethod? orderingMethod)
     {
-        var query = _dbContext.Moderations.AsQueryable();
+        var query = _dbContext.Moderations
+            .AsQueryable()
+            .Where(moderation => moderation.ObjectId == objectId);
 
         if (moderatorId != null)
             query = query.Where(moderation => moderation.ModeratorId == moderatorId);
-
-        if (objectId != null)
-            query = query.Where(moderation => moderation.ObjectId == objectId);
 
         if (action != null)
             query = query.Where(moderation => moderation.Action == action);
@@ -65,7 +69,8 @@ public class ModerationService
             : query.OrderByDescending(moderation => moderation.CreatedAt);
 
         var moderations = await query
-            .Take(25)
+            .Skip(offset.SafeOffset())
+            .Take(size.SafeSize(50))
             .ToListAsync();
         
         var models = moderations.ConvertAll(moderation => (ModerationModel)moderation);
@@ -76,6 +81,7 @@ public class ModerationService
     private async Task<StateModel<ModerationModel>> _PerformAction(
         Guid objectId,
         ObjectType objectType,
+        List<string> extras,
         ModerationAction action)
     {
         var moderator = (UserEntity)_contextAccessor.HttpContext!.Items["User"]!;
@@ -168,7 +174,10 @@ public class ModerationService
                 return StateModel<ModerationModel>.ParseOk((ModerationModel)userModeration);
             
             case ObjectType.Chat:
-                var chat = await _dbContext.Chats.FindAsync(objectId);
+                var chat = await _dbContext.Chats
+                    .Include(dbChat => dbChat.JoinedUsers)
+                    .FirstOrDefaultAsync(dbChat => dbChat.Id == objectId);
+                
                 if (chat == null)
                 {
                     _contextAccessor.HttpContext!.Response.StatusCode = (int)HttpStatusCode.BadRequest;
@@ -189,6 +198,47 @@ public class ModerationService
                         chat.IsHidden = false;
                         break;
                     
+                    case ModerationAction.Ban:
+                        var userToBanId = extras.ElementAtOrDefault(0) ?? "none";
+
+                        if (!Guid.TryParse(userToBanId, out var userToBanIdParsed))
+                        {
+                            _contextAccessor.HttpContext!.Response.StatusCode = (int)HttpStatusCode.BadRequest;
+                            return StateModel<ModerationModel>.ParseFrom(StateCode.InvalidRequest);
+                        }
+
+                        var userExists = chat.JoinedUsers.Any(dbUser => dbUser.Id == userToBanIdParsed);
+
+                        if (!userExists)
+                        {
+                            _contextAccessor.HttpContext!.Response.StatusCode = (int)HttpStatusCode.BadRequest;
+                            return StateModel<ModerationModel>.ParseFrom(StateCode.UserDoesNotExist);
+                        }
+                        
+                        chat.BannedUsers.Add(new ChatEntityBan
+                        {
+                            UserId = userToBanIdParsed,
+                            BannedByAdmin = true
+                        });
+                        chat.JoinedUsers = chat.JoinedUsers
+                            .Where(dbUser => dbUser.Id != userToBanIdParsed)
+                            .ToList();
+                        
+                        break;
+                    
+                    case ModerationAction.Unban:
+                        var userToUnbanId = extras.ElementAtOrDefault(0) ?? "none";
+                        if (!Guid.TryParse(userToUnbanId, out var userToUnbanIdParsed))
+                        {
+                            _contextAccessor.HttpContext!.Response.StatusCode = (int)HttpStatusCode.BadRequest;
+                            return StateModel<ModerationModel>.ParseFrom(StateCode.InvalidRequest);
+                        }
+
+                        chat.BannedUsers = chat.BannedUsers
+                            .Where(ban => ban.UserId != userToUnbanIdParsed)
+                            .ToList();
+                        break;
+                    
                     default:
                         _contextAccessor.HttpContext!.Response.StatusCode = (int)HttpStatusCode.BadRequest;
                         return StateModel<ModerationModel>.ParseFrom(StateCode.InvalidAction);
@@ -200,7 +250,8 @@ public class ModerationService
                     ModeratorId = moderator.Id,
                     ObjectId = objectId,
                     Action = action,
-                    ObjectType = objectType
+                    ObjectType = objectType,
+                    Extras = extras
                 };
 
                 await _dbContext.Moderations.AddAsync(chatModeration);

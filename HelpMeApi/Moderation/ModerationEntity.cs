@@ -18,6 +18,7 @@ public class ModerationEntity
     public Guid ObjectId { get; set; }
     public ObjectType ObjectType { get; set; }
     public ModerationAction Action { get; set; }
+    public List<string> Extras { get; set; } = new();
     
     public long CreatedAt { get; set; }
 
@@ -33,6 +34,7 @@ public class ModerationEntity
         ObjectId = entity.ObjectId,
         CreatedAt = entity.CreatedAt,
         Moderator = (UserPublicModel)entity.Moderator,
-        ObjectType = entity.ObjectType
+        ObjectType = entity.ObjectType,
+        Extras = entity.Extras
     };
 }

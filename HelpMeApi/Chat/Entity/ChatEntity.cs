@@ -1,4 +1,6 @@
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+using HelpMeApi.Chat.Entity.Json;
 using HelpMeApi.Chat.Model;
 using HelpMeApi.Topic.Entity;
 using HelpMeApi.Topic.Model;
@@ -25,6 +27,12 @@ public class ChatEntity
     public bool IsHidden { get; set; }
     public bool IsPublic { get; set; }
     public bool IsVerified { get; set; }
+    
+    [Column(TypeName = "jsonb[]")]
+    public List<ChatEntityBan> BannedUsers { get; set; } = null!;
+    
+    [Column(TypeName = "jsonb[]")]
+    public List<ChatEntityInvitation> InvitedUsers { get; set; } = null!;
 
     public ChatEntity()
     {
@@ -35,7 +43,6 @@ public class ChatEntity
     {
         Id = entity.Id,
         Creator = (UserPublicModel)entity.Creator,
-        JoinedUsers = new List<UserPublicModel> { (UserPublicModel)entity.Creator },
         Topics = entity.Topics.ConvertAll(topic => (TopicModel)topic),
         Title = entity.Title,
         Description = entity.Description,

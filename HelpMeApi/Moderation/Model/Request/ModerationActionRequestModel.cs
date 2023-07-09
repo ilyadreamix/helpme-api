@@ -8,4 +8,5 @@ public class ModerationActionRequestModel
     public ModerationAction Action { get; set; }
     public ObjectType ObjectType { get; set; }
     public string ObjectId { get; set; } = null!;
+    public List<string> Extras { get; set; } = new();
 }

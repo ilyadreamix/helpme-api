@@ -35,12 +35,21 @@ public class ModerationController : ControllerBase
     
     [HttpGet("list")]
     public async Task<IActionResult> List(
-        Guid? moderatorId,
-        Guid? objectId,
+        Guid objectId,
+        Guid moderatorId,
         ModerationAction? action,
+        int offset = 0,
+        int size = 25,
         OrderingMethod orderingMethod = OrderingMethod.ByTime)
     {
-        var state = await _moderationService.List(moderatorId, objectId, action, orderingMethod);
+        var state = await _moderationService.List(
+            objectId: objectId,
+            moderatorId: moderatorId,
+            action: action,
+            offset: offset,
+            size: size,
+            orderingMethod: orderingMethod);
+        
         return new JsonResult(state);
     }
 }
