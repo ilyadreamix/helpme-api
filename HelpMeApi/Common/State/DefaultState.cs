@@ -53,4 +53,10 @@ public static class DefaultState
         Code = (int)StateCode.InvalidCredentials,
         State = StateCode.InvalidCredentials.ToString()
     };
+    
+    public static readonly StateModel<JsonObject> NoRights = new()
+    {
+        Code = (int)StateCode.NoRights,
+        State = StateCode.NoRights.ToString()
+    };
 }

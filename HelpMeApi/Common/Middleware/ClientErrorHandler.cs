@@ -12,7 +12,6 @@ public static class ClientErrorHandler
             await next();
             var status = (HttpStatusCode)context.Response.StatusCode;
 
-            // ReSharper disable once SwitchStatementHandlesSomeKnownEnumValuesWithDefault
             switch (status)
             {
                 case HttpStatusCode.NotFound:

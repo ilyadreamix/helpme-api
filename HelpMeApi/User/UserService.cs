@@ -19,17 +19,19 @@ public class UserService
     private readonly GoogleOAuthService _oauthService;
     private readonly HashService _hashService;
     private readonly AuthService _authService;
+    private readonly IHttpContextAccessor _contextAccessor;
 
     public UserService(
         ApplicationDbContext dbContext,
         GoogleOAuthService oauthService,
         HashService hashService,
-        AuthService authService)
+        AuthService authService, IHttpContextAccessor contextAccessor)
     {
         _dbContext = dbContext;
         _oauthService = oauthService;
         _hashService = hashService;
         _authService = authService;
+        _contextAccessor = contextAccessor;
     }
     
     public async Task<(StateCode, UserEntity?)> SignUp(UserSignUpRequestModel body)
@@ -146,6 +148,7 @@ public class UserService
             return okState;
         }
 
+        
         var errorState = new StateModel<UserAuthResponseModel>
         {
             Code = (int)resultState,

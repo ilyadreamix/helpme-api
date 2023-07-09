@@ -66,6 +66,12 @@ public class UserController : ControllerBase
     {
         var user = (UserEntity)HttpContext.Items["User"]!;
         var result = await _userService.Delete(body, user);
+
+        if (result.Code != (int)StateCode.Ok)
+        {
+            HttpContext.Response.StatusCode = (int)HttpStatusCode.BadRequest;
+        }
+        
         return new JsonResult(result);
     }
     

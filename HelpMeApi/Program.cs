@@ -1,16 +1,52 @@
-using Microsoft.AspNetCore;
+using System.Text.Json;
+using HelpMeApi.Chat;
+using HelpMeApi.Common;
+using HelpMeApi.Common.Auth;
+using HelpMeApi.Common.GoogleOAuth;
+using HelpMeApi.Common.Hash;
+using HelpMeApi.Common.Middleware;
+using HelpMeApi.Moderation;
+using HelpMeApi.User;
 
-namespace HelpMeApi;
+var builder = WebApplication.CreateBuilder(args);
 
-public static class Program
-{
-    public static async Task Main(string[] arguments)
-    {
-        var webHost = WebHost
-            .CreateDefaultBuilder(arguments)
-            .UseStartup<Startup>()
-            .Build();
+var configuration = builder.Configuration;
+var services = builder.Services;
+
+services.AddHttpContextAccessor();
+services.AddSingleton<HttpClient>();
+services.AddDbContext<ApplicationDbContext>();
+
+services.Configure<AuthSettings>(configuration.GetSection("Auth"));
+services.AddSingleton<AuthService>();
         
-        await webHost.RunAsync();
-    }
-}
+services.Configure<HashSettings>(configuration.GetSection("Hash"));
+services.AddSingleton<HashService>();
+        
+services.Configure<GoogleOAuthSettings>(configuration.GetSection("GoogleOAuth"));
+services.AddSingleton<GoogleOAuthService>();
+
+services.AddScoped<UserService>();
+services.AddScoped<ChatService>();
+services.AddScoped<ModerationService>();
+        
+services
+    .AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+    });
+services.ConfigureValidationErrorHandler();
+
+var application = builder.Build();
+
+application.ConfigureExceptionHandler();
+application.ConfigureClientErrorHandler();
+        
+// application.UseHttpsRedirection();
+application.UseRouting();
+application.UseMiddleware<AuthMiddleware>();
+application.UseWebSockets();
+application.MapControllers();
+
+await application.RunAsync();

@@ -1,4 +1,5 @@
 using HelpMeApi.Chat.Entity;
+using HelpMeApi.Moderation;
 using HelpMeApi.User.Entity;
 using HelpMeApi.Topic.Entity;
 using Microsoft.EntityFrameworkCore;
@@ -37,12 +38,12 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<TopicEntity>()
             .HasMany(t => t.Users)
             .WithMany(p => p.Topics)
-            .UsingEntity(j => j.ToTable("UserTopic"));
+            .UsingEntity(j => j.ToTable("TopicUserRelation"));
 
         modelBuilder.Entity<TopicEntity>()
             .HasMany(t => t.Chats)
             .WithMany(c => c.Topics)
-            .UsingEntity(j => j.ToTable("ChatTopic"));
+            .UsingEntity(j => j.ToTable("TopicChatRelation"));
 
         base.OnModelCreating(modelBuilder);
     }
@@ -51,4 +52,5 @@ public class ApplicationDbContext : DbContext
     public DbSet<ChatEntity> Chats { get; set; } = null!;
     public DbSet<ChatMessageEntity> ChatMessages { get; set; } = null!;
     public DbSet<TopicEntity> Topics { get; set; } = null!;
+    public DbSet<ModerationEntity> Moderations { get; set; } = null!;
 }

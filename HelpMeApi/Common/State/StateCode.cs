@@ -17,5 +17,6 @@ public enum StateCode
     NicknameUnavailable,
     InvalidIdToken,
     EmailIsNotVerified,
-    YouAreBanned
+    YouAreBanned,
+    NoRights
 }

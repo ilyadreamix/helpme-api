@@ -2,6 +2,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Net;
 using System.Security.Claims;
 using HelpMeApi.Common.State;
+using HelpMeApi.User.Enum;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Net.Http.Headers;
 
@@ -11,6 +12,7 @@ namespace HelpMeApi.Common.Auth;
 public class AuthRequired : Attribute
 {
     public bool ForbidBanned { get; set; } = true;
+    public UserRole[] Roles { get; set; } = { UserRole.Default, UserRole.Moderator, UserRole.Support };
 }
 
 public class AuthMiddleware
@@ -95,6 +97,13 @@ public class AuthMiddleware
         {
             context.Response.StatusCode = (int)HttpStatusCode.Forbidden;
             await context.Response.WriteAsJsonAsync(DefaultState.YouAreBanned);
+            return;
+        }
+        
+        if (!decorator.Roles.Contains(user.Role))
+        {
+            context.Response.StatusCode = (int)HttpStatusCode.Forbidden;
+            await context.Response.WriteAsJsonAsync(DefaultState.NoRights);
             return;
         }
 

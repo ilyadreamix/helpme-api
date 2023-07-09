@@ -15,7 +15,7 @@ public class StateModel<T> : StateModelBase
         Data = data
     };
 
-    public static StateModel<T> ParseFrom(StateCode code, T? data) => new()
+    public static StateModel<T> ParseFrom(StateCode code, T? data = default) => new()
     {
         Code = (int)code,
         State = code.ToString(),
