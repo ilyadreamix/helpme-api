@@ -1,7 +1,7 @@
 using System.Net;
 using System.Text.Json.Nodes;
 using HelpMeApi.Chat.Entity;
-using HelpMeApi.Chat.Entity.Json;
+using HelpMeApi.Chat.Entity.Object;
 using HelpMeApi.Chat.Model;
 using HelpMeApi.Chat.Model.Request;
 using HelpMeApi.Common;
@@ -11,6 +11,7 @@ using HelpMeApi.Common.State.Model;
 using HelpMeApi.Common.Utility;
 using HelpMeApi.User.Entity;
 using HelpMeApi.User.Model;
+using HelpMeApi.WebSocket;
 using Microsoft.EntityFrameworkCore;
 
 namespace HelpMeApi.Chat;
@@ -19,13 +20,16 @@ public class ChatService
 {
     private readonly ApplicationDbContext _dbContext;
     private readonly IHttpContextAccessor _contextAccessor;
+    private readonly WebSocketService _webSocketService;
 
     public ChatService(
         ApplicationDbContext dbContext,
-        IHttpContextAccessor contextAccessor)
+        IHttpContextAccessor contextAccessor,
+        WebSocketService webSocketService)
     {
         _dbContext = dbContext;
         _contextAccessor = contextAccessor;
+        _webSocketService = webSocketService;
     }
 
     public async Task<ChatModel> CreateChat(ChatCreateRequestModel body)
@@ -79,6 +83,8 @@ public class ChatService
         if (title != null)
             query = query.Where(chat => chat.Title.Contains(title));
 
+        query = query.Where(chat => !chat.IsHidden);
+
         query = orderingMethod switch
         {
             OrderingMethod.ByName => query.OrderBy(chat => chat.Title),
@@ -95,43 +101,67 @@ public class ChatService
         return StateModel<List<ChatModel>>.ParseOk(models);
     }
     
-    public async Task<StateModel<ChatModel>> Get(Guid id)
+    public async Task<IntermediateState<ChatModel>> Get(Guid id)
     {
-        var chat = await _dbContext.Chats.FindAsync(id);
-        if (chat != null)
+        var iState = new IntermediateState<ChatModel>
         {
-            return StateModel<ChatModel>.ParseOk((ChatModel)chat);
+            StatusCode = HttpStatusCode.BadRequest
+        };
+        
+        var chat = await _dbContext.Chats.FindAsync(id);
+        if (chat == null)
+        {
+            iState.Model = StateModel<ChatModel>.ParseFrom(StateCode.ContentNotFound);
+            return iState;
+        }
+
+        if (!chat.IsHidden)
+        {
+            iState.Model = StateModel<ChatModel>.ParseOk((ChatModel)chat);
+            iState.StatusCode = HttpStatusCode.OK;
+            return iState;
         }
         
-        _contextAccessor.HttpContext!.Response.StatusCode = (int)HttpStatusCode.BadRequest;
-        return StateModel<ChatModel>.ParseFrom(StateCode.ContentNotFound);
+        iState.Model = StateModel<ChatModel>.ParseFrom(StateCode.ThisChatIsDisabled);
+        return iState;
     }
     
-    public async Task<StateModel<List<UserPublicModel>>> JoinedUsers(
+    public async Task<IntermediateState<List<UserPublicModel>>> JoinedUsers(
         Guid id,
         int offset,
         int size)
     {
+        var iState = new IntermediateState<List<UserPublicModel>>
+        {
+            StatusCode = HttpStatusCode.BadRequest
+        };
+        
         var chat = await _dbContext.Chats
             .Include(
                 chat => chat.JoinedUsers
+                    .Where(user => !user.IsBanned)
                     .Skip(offset.SafeOffset())
                     .Take(size.SafeSize(25)))
             .FirstOrDefaultAsync(chat => chat.Id == id);
         
         if (chat == null)
         {
-            _contextAccessor.HttpContext!.Response.StatusCode = (int)HttpStatusCode.BadRequest;
-            return StateModel<List<UserPublicModel>>.ParseFrom(StateCode.ContentNotFound);
+            return iState.Copy(
+                model: StateModel<List<UserPublicModel>>.ParseFrom(StateCode.ContentNotFound));
         }
 
         var users = chat.JoinedUsers.ConvertAll(user => (UserPublicModel)user);
         
-        return StateModel<List<UserPublicModel>>.ParseOk(users);
+        return iState.Ok(StateModel<List<UserPublicModel>>.ParseOk(users));
     }
 
-    public async Task<StateModel<JsonObject>> Join(Guid id)
+    public async Task<IntermediateState<JsonObject>> Join(Guid id)
     {
+        var iState = new IntermediateState<JsonObject>
+        {
+            StatusCode = HttpStatusCode.BadRequest
+        };
+        
         var user = (UserEntity)_contextAccessor.HttpContext!.Items["User"]!;
         var chat = await _dbContext.Chats
             .Include(chat => chat.JoinedUsers)
@@ -139,26 +169,25 @@ public class ChatService
 
         if (chat == null)
         {
-            _contextAccessor.HttpContext!.Response.StatusCode = (int)HttpStatusCode.BadRequest;
-            return DefaultState.ContentNotFound;
+            iState.Model = DefaultState.ContentNotFound;
+            return iState;
         }
 
         if (chat.IsHidden)
         {
-            _contextAccessor.HttpContext!.Response.StatusCode = (int)HttpStatusCode.BadRequest;
-            return DefaultState.ThisChatIsDisabled;
+            return iState.Copy(model: DefaultState.ThisChatIsDisabled);
         }
         
         if (chat.JoinedUsers.Contains(user))
         {
-            _contextAccessor.HttpContext!.Response.StatusCode = (int)HttpStatusCode.BadRequest;
-            return DefaultState.YouHaveAlreadyJoinedThisChat;
+            return iState.Copy(model: DefaultState.YouHaveAlreadyJoinedThisChat);
         }
 
         if (chat.BannedUsers.Any(ban => ban.UserId == user.Id))
         {
-            _contextAccessor.HttpContext!.Response.StatusCode = (int)HttpStatusCode.Forbidden;
-            return DefaultState.YouAreBannedInThisChat;
+            return iState.Copy(
+                statusCode: HttpStatusCode.Forbidden, 
+                model: DefaultState.YouAreBanned);
         }
         
         if (chat.InvitedUsers.Any(invitation => invitation.UserId == user.Id))
@@ -167,18 +196,24 @@ public class ChatService
         }
         else if (!chat.IsPublic)
         {
-            _contextAccessor.HttpContext!.Response.StatusCode = (int)HttpStatusCode.Forbidden;
-            return DefaultState.YouWasNotInvitedToThisChat;
+            return iState.Copy(
+                statusCode: HttpStatusCode.Forbidden, 
+                model: DefaultState.YouWasNotInvitedToThisChat);
         }
 
         chat.JoinedUsers.Add(user);
         await _dbContext.SaveChangesAsync();
 
-        return DefaultState.Ok;
+        return iState.Ok(DefaultState.Ok);
     }
 
-    public async Task<StateModel<JsonObject>> InviteUser(Guid id, Guid userId)
+    public async Task<IntermediateState<JsonObject>> InviteUser(Guid id, Guid userId)
     {
+        var iState = new IntermediateState<JsonObject>
+        {
+            StatusCode = HttpStatusCode.BadRequest
+        };
+        
         var user = (UserEntity)_contextAccessor.HttpContext!.Items["User"]!;
         var chat = await _dbContext.Chats
             .Include(chat => chat.JoinedUsers)
@@ -186,40 +221,36 @@ public class ChatService
 
         if (chat == null)
         {
-            _contextAccessor.HttpContext!.Response.StatusCode = (int)HttpStatusCode.BadRequest;
-            return DefaultState.ContentNotFound;
+            return iState.Copy(model: DefaultState.ContentNotFound);
         }
         
         if (user.Id != chat.CreatorId)
         {
-            _contextAccessor.HttpContext!.Response.StatusCode = (int)HttpStatusCode.Forbidden;
-            return DefaultState.YouCannotEditThisChat;
+            return iState.Copy(
+                model: DefaultState.YouCannotEditThisChat,
+                statusCode: HttpStatusCode.Forbidden);
         }
 
         var invitedUser = await _dbContext.Users.FindAsync(userId);
 
         if (invitedUser == null)
         {
-            _contextAccessor.HttpContext!.Response.StatusCode = (int)HttpStatusCode.BadRequest;
-            return DefaultState.UserDoesNotExist;
+            return iState.Copy(model: DefaultState.UserDoesNotExist);
         }
 
         if (chat.JoinedUsers.Any(dbUser => dbUser.Id == invitedUser.Id))
         {
-            _contextAccessor.HttpContext!.Response.StatusCode = (int)HttpStatusCode.BadRequest;
-            return DefaultState.UserHasAlreadyJoinedThisChat;
+            return iState.Copy(model: DefaultState.UserHasAlreadyJoinedThisChat);
         }
 
         if (chat.InvitedUsers.Any(invitation => invitation.UserId == invitedUser.Id))
         {
-            _contextAccessor.HttpContext!.Response.StatusCode = (int)HttpStatusCode.BadRequest;
-            return DefaultState.UserWasAlreadyInvited;
+            return iState.Copy(model: DefaultState.UserWasAlreadyInvited);
         }
 
         if (chat.BannedUsers.Any(ban => ban.UserId == invitedUser.Id))
         {
-            _contextAccessor.HttpContext!.Response.StatusCode = (int)HttpStatusCode.BadRequest;
-            return DefaultState.UnbanUserToInvite;
+            return iState.Copy(model: DefaultState.UnbanUserToInvite);
         }
         
         chat.InvitedUsers.Add(new ChatEntityInvitation
@@ -228,11 +259,21 @@ public class ChatService
         });
         await _dbContext.SaveChangesAsync();
 
-        return DefaultState.Ok;
+        await _webSocketService.NotifyUserChatInvite(
+            sender: user,
+            recipient: invitedUser,
+            chat: chat).ConfigureAwait(false);
+
+        return iState.Ok(DefaultState.Ok);
     }
 
-    public async Task<StateModel<JsonObject>> UninviteUser(Guid id, Guid userId)
+    public async Task<IntermediateState<JsonObject>> UninviteUser(Guid id, Guid userId)
     {
+        var iState = new IntermediateState<JsonObject>
+        {
+            StatusCode = HttpStatusCode.BadRequest
+        };
+        
         var user = (UserEntity)_contextAccessor.HttpContext!.Items["User"]!;
         var chat = await _dbContext.Chats
             .Include(chat => chat.JoinedUsers)
@@ -240,14 +281,14 @@ public class ChatService
 
         if (chat == null)
         {
-            _contextAccessor.HttpContext!.Response.StatusCode = (int)HttpStatusCode.BadRequest;
-            return DefaultState.ContentNotFound;
+            return iState.Copy(model: DefaultState.ContentNotFound);
         }
         
         if (user.Id != chat.CreatorId)
         {
-            _contextAccessor.HttpContext!.Response.StatusCode = (int)HttpStatusCode.Forbidden;
-            return DefaultState.YouCannotEditThisChat;
+            return iState.Copy(
+                statusCode: HttpStatusCode.Forbidden,
+                model: DefaultState.YouCannotEditThisChat);
         }
 
         chat.InvitedUsers = chat.InvitedUsers
@@ -256,6 +297,6 @@ public class ChatService
 
         await _dbContext.SaveChangesAsync();
 
-        return DefaultState.Ok;
+        return iState.Ok(DefaultState.Ok);
     }
 }

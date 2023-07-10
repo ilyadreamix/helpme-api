@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using HelpMeApi.Chat.Entity.Object;
 using HelpMeApi.Common;
+using HelpMeApi.Common.Object;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
@@ -14,8 +15,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace HelpMeApi.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20230709185353_M07_09_23_6")]
-    partial class M07_09_23_6
+    [Migration("20230710140320_M07_10_23_AddModerationExtras")]
+    partial class M07_10_23_AddModerationExtras
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -126,6 +127,10 @@ namespace HelpMeApi.Migrations
 
                     b.Property<long>("CreatedAt")
                         .HasColumnType("bigint");
+
+                    b.Property<List<Extra>>("Extras")
+                        .IsRequired()
+                        .HasColumnType("jsonb[]");
 
                     b.Property<Guid>("ModeratorId")
                         .HasColumnType("uuid");

@@ -30,8 +30,9 @@ public class ChatController : ControllerBase
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> Get(Guid id)
     {
-        var state = await _service.Get(id);
-        return new JsonResult(state);
+        var iState = await _service.Get(id);
+        HttpContext.Response.StatusCode = (int)iState.StatusCode;
+        return new JsonResult(iState.Model);
     }
 
     [HttpGet("list")]
@@ -56,8 +57,9 @@ public class ChatController : ControllerBase
     [HttpPost("{id:guid}/join")]
     public async Task<IActionResult> Join(Guid id)
     {
-        var state = await _service.Join(id);
-        return new JsonResult(state);
+        var iState = await _service.Join(id);
+        HttpContext.Response.StatusCode = (int)iState.StatusCode;
+        return new JsonResult(iState.Model);
     }
     
     [HttpGet("{id:guid}/joined-users")]
@@ -66,8 +68,9 @@ public class ChatController : ControllerBase
         int offset = 0,
         int size = 25)
     {
-        var state = await _service.JoinedUsers(id, offset, size);
-        return new JsonResult(state);
+        var iState = await _service.JoinedUsers(id, offset, size);
+        HttpContext.Response.StatusCode = (int)iState.StatusCode;
+        return new JsonResult(iState.Model);
     }
     
     [HttpPost("{id:guid}/invite-user")]
@@ -75,8 +78,9 @@ public class ChatController : ControllerBase
         Guid id,
         Guid userId)
     {
-        var state = await _service.InviteUser(id, userId);
-        return new JsonResult(state);
+        var iState = await _service.InviteUser(id, userId);
+        HttpContext.Response.StatusCode = (int)iState.StatusCode;
+        return new JsonResult(iState.Model);
     }
     
     [HttpPost("{id:guid}/uninvite-user")]
@@ -84,7 +88,8 @@ public class ChatController : ControllerBase
         Guid id,
         Guid userId)
     {
-        var state = await _service.UninviteUser(id, userId);
-        return new JsonResult(state);
+        var iState = await _service.UninviteUser(id, userId);
+        HttpContext.Response.StatusCode = (int)iState.StatusCode;
+        return new JsonResult(iState.Model);
     }
 }

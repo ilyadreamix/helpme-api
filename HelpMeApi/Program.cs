@@ -7,6 +7,7 @@ using HelpMeApi.Common.Hash;
 using HelpMeApi.Common.Middleware;
 using HelpMeApi.Moderation;
 using HelpMeApi.User;
+using HelpMeApi.WebSocket;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -29,7 +30,10 @@ services.AddSingleton<GoogleOAuthService>();
 services.AddScoped<UserService>();
 services.AddScoped<ChatService>();
 services.AddScoped<ModerationService>();
-        
+
+services.AddSingleton<WebSocketConnectionManager>();
+services.AddSingleton<WebSocketService>();
+
 services
     .AddControllers()
     .AddJsonOptions(options =>

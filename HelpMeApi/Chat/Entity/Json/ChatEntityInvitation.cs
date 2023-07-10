@@ -1,4 +1,4 @@
-namespace HelpMeApi.Chat.Entity.Json;
+namespace HelpMeApi.Chat.Entity.Object;
 
 public class ChatEntityInvitation
 {

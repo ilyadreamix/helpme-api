@@ -1,8 +1,6 @@
-using System.Net;
 using HelpMeApi.Common.Auth;
 using HelpMeApi.Common.State;
 using HelpMeApi.Common.State.Model;
-using HelpMeApi.User.Entity;
 using HelpMeApi.User.Model.Request;
 using HelpMeApi.User.Model.Response;
 using Microsoft.AspNetCore.Mvc;
@@ -23,40 +21,24 @@ public class UserController : ControllerBase
     [HttpPost("sign-up")]
     public async Task<IActionResult> SignUp([FromBody] UserSignUpRequestModel body)
     {
-        var (resultState, user) = await _userService.SignUp(body);
-
-        if (resultState != StateCode.Ok)
-        {
-            HttpContext.Response.StatusCode = (int)HttpStatusCode.BadRequest;
-        }
-        var state = _userService.ParseResponseState(resultState, user);
-        
-        return new JsonResult(state);
+        var iState = await _userService.SignUp(body);
+        HttpContext.Response.StatusCode = (int)iState.StatusCode;
+        return new JsonResult(iState.Model);
     }
     
     [HttpPost("sign-in")]
     public async Task<IActionResult> SignIn([FromBody] UserSignInRequestModel body)
     {
-        var (resultState, user) = await _userService.SignIn(body);
-
-        if (resultState != StateCode.Ok)
-        {
-            HttpContext.Response.StatusCode = (int)HttpStatusCode.BadRequest;
-        }
-        var state = _userService.ParseResponseState(resultState, user);
-        
-        return new JsonResult(state);
+        var iState = await _userService.SignIn(body);
+        HttpContext.Response.StatusCode = (int)iState.StatusCode;
+        return new JsonResult(iState.Model);
     }
     
     [HttpPost("sign-out")]
     [AuthRequired(ForbidBanned = false)]
     public new async Task<IActionResult> SignOut()
     {
-        var user = (UserEntity)HttpContext.Items["User"]!;
-        var tokenId = (string)HttpContext.Items["TokenId"]!;
-        
-        await _userService.SignOut(user.Id.ToString(), tokenId);
-
+        await _userService.SignOut();
         return new JsonResult(DefaultState.Ok);
     }
     
@@ -64,15 +46,9 @@ public class UserController : ControllerBase
     [AuthRequired(ForbidBanned = false)]
     public async Task<IActionResult> Delete([FromBody] UserDeleteRequestModel body)
     {
-        var user = (UserEntity)HttpContext.Items["User"]!;
-        var result = await _userService.Delete(body, user);
-
-        if (result.Code != (int)StateCode.Ok)
-        {
-            HttpContext.Response.StatusCode = (int)HttpStatusCode.BadRequest;
-        }
-        
-        return new JsonResult(result);
+        var iState = await _userService.Delete(body);
+        HttpContext.Response.StatusCode = (int)iState.StatusCode;
+        return new JsonResult(iState.Model);
     }
     
     [HttpPost("check-nickname-availability")]

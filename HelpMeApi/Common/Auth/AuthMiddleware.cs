@@ -107,8 +107,11 @@ public class AuthMiddleware
             return;
         }
 
+        user.LastOnlineAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        await dbContext.SaveChangesAsync();
+
         context.Items["User"] = user;
-        context.Items["TokenId"] = tokenId.Value;
+        context.Items["AuthTokenId"] = tokenId.Value;
 
         await _next.Invoke(context);
     }

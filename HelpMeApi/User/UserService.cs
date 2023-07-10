@@ -1,3 +1,4 @@
+using System.Net;
 using System.Text.Json.Nodes;
 using HelpMeApi.Common;
 using HelpMeApi.Common.Auth;
@@ -6,6 +7,7 @@ using HelpMeApi.Common.Hash;
 using HelpMeApi.Common.State;
 using HelpMeApi.Common.State.Model;
 using HelpMeApi.User.Entity;
+using HelpMeApi.User.Enum;
 using HelpMeApi.User.Model;
 using HelpMeApi.User.Model.Request;
 using HelpMeApi.User.Model.Response;
@@ -19,24 +21,33 @@ public class UserService
     private readonly GoogleOAuthService _oauthService;
     private readonly HashService _hashService;
     private readonly AuthService _authService;
+    private readonly IHttpContextAccessor _contextAccessor;
 
     public UserService(
         ApplicationDbContext dbContext,
         GoogleOAuthService oauthService,
         HashService hashService,
-        AuthService authService)
+        AuthService authService,
+        IHttpContextAccessor contextAccessor)
     {
         _dbContext = dbContext;
         _oauthService = oauthService;
         _hashService = hashService;
         _authService = authService;
+        _contextAccessor = contextAccessor;
     }
     
-    public async Task<(StateCode, UserEntity?)> SignUp(UserSignUpRequestModel body)
+    public async Task<IntermediateState<UserAuthResponseModel>> SignUp(UserSignUpRequestModel body)
     {
+        var iState = new IntermediateState<UserAuthResponseModel>
+        {
+            StatusCode = HttpStatusCode.BadRequest
+        }; 
+        
         if (body.Age is < 14)
         {
-            return new ValueTuple<StateCode, UserEntity?>(StateCode.TooYoung, null);
+            iState.Model = StateModel<UserAuthResponseModel>.ParseFrom(StateCode.TooYoung);
+            return iState;
         }
         
         var alreadyExistsNickname = await _dbContext.Users.AnyAsync(user =>
@@ -44,19 +55,22 @@ public class UserService
 
         if (alreadyExistsNickname)
         {
-            return new ValueTuple<StateCode, UserEntity?>(StateCode.NicknameUnavailable, null);
+            iState.Model = StateModel<UserAuthResponseModel>.ParseFrom(StateCode.NicknameUnavailable);
+            return iState;
         }
 
         var (isIdTokenValid, idToken) = await _oauthService.VerifyIdToken(body.OAuthIdToken);
 
         if (!isIdTokenValid)
         {
-            return new ValueTuple<StateCode, UserEntity?>(StateCode.InvalidIdToken, null);
+            iState.Model = StateModel<UserAuthResponseModel>.ParseFrom(StateCode.InvalidIdToken);
+            return iState;
         }
 
         if (idToken!.EmailVerified != "true")
         {
-            return new ValueTuple<StateCode, UserEntity?>(StateCode.EmailIsNotVerified, null);
+            iState.Model = StateModel<UserAuthResponseModel>.ParseFrom(StateCode.EmailIsNotVerified);
+            return iState;
         }
 
         var alreadyExistsEmail = await _dbContext.Users.AnyAsync(record =>
@@ -64,7 +78,8 @@ public class UserService
 
         if (alreadyExistsEmail)
         {
-            return new ValueTuple<StateCode, UserEntity?>(StateCode.UserAlreadyExists, null);
+            iState.Model = StateModel<UserAuthResponseModel>.ParseFrom(StateCode.UserAlreadyExists);
+            return iState;
         }
 
         var userId = Guid.NewGuid();
@@ -82,78 +97,98 @@ public class UserService
         await _dbContext.Users.AddAsync(user);
         await _dbContext.SaveChangesAsync();
 
-        return new ValueTuple<StateCode, UserEntity?>(StateCode.Ok, user);
+        iState.StatusCode = HttpStatusCode.OK;
+        iState.Model = StateModel<UserAuthResponseModel>.ParseOk(new UserAuthResponseModel
+        {
+            User = (UserPrivateModel)user,
+            AuthToken = _authService.GenerateJwtToken(user.Id.ToString())
+        });
+
+        return iState;
     }
 
-    public async Task<(StateCode, UserEntity?)> SignIn(UserSignInRequestModel body)
+    public async Task<IntermediateState<UserAuthResponseModel>> SignIn(UserSignInRequestModel body)
     {
+        var iState = new IntermediateState<UserAuthResponseModel>
+        {
+            StatusCode = HttpStatusCode.BadRequest
+        }; 
+        
         var (isIdTokenValid, idToken) = await _oauthService.VerifyIdToken(body.OAuthIdToken);
 
         if (!isIdTokenValid)
         {
-            return new ValueTuple<StateCode, UserEntity?>(StateCode.InvalidIdToken, null);
+            iState.Model = StateModel<UserAuthResponseModel>.ParseFrom(StateCode.InvalidIdToken);
+            return iState;
         }
 
         var user = await _dbContext.Users.SingleOrDefaultAsync(user => user.Email == idToken!.Email);
 
         if (user == null)
         {
-            return new ValueTuple<StateCode, UserEntity?>(StateCode.UserDoesNotExist, null);
+            iState.Model = StateModel<UserAuthResponseModel>.ParseFrom(StateCode.UserDoesNotExist);
+            return iState;
         }
 
         user.LastSignedInAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
         await _dbContext.SaveChangesAsync();
+
+        if (user.PinCodeHash != _hashService.ComputePinCodeHash(body.PinCode))
+        {
+            iState.Model = StateModel<UserAuthResponseModel>.ParseFrom(StateCode.InvalidCredentials);
+            return iState;
+        }
+
+        iState.StatusCode = HttpStatusCode.OK;
+        iState.Model = StateModel<UserAuthResponseModel>.ParseOk(new UserAuthResponseModel
+        {
+            User = (UserPrivateModel)user,
+            AuthToken = _authService.GenerateJwtToken(user.Id.ToString())
+        });
         
-        return user.PinCodeHash != _hashService.ComputePinCodeHash(body.PinCode)
-            ? new ValueTuple<StateCode, UserEntity?>(StateCode.InvalidCredentials, null)
-            : new ValueTuple<StateCode, UserEntity?>(StateCode.Ok, user);
+        return iState;
     }
 
-    public async Task SignOut(string userId, string tokenId)
+    public async Task SignOut()
     {
-        var user = await _dbContext.Users.SingleOrDefaultAsync(user => user.Id == Guid.Parse(userId));
-        user!.DisabledSessionIds.Add(tokenId);
+        var authUser = (UserEntity)_contextAccessor.HttpContext!.Items["User"]!;
+        var authTokenId = (string)_contextAccessor.HttpContext!.Items["AuthTokenId"]!;
+        
+        var user = await _dbContext.Users.SingleOrDefaultAsync(user => user.Id == authUser.Id);
+        user!.DisabledSessionIds.Add(authTokenId);
+        
         await _dbContext.SaveChangesAsync();
     }
 
-    public async Task<StateModel<JsonObject>> Delete(
-        UserDeleteRequestModel body,
-        UserEntity user)
+    public async Task<IntermediateState<JsonObject>> Delete(UserDeleteRequestModel body)
     {
-        if (_hashService.ComputePinCodeHash(body.PinCode) != user.PinCodeHash)
+        var authUser = (UserEntity)_contextAccessor.HttpContext!.Items["User"]!;
+        
+        var iState = new IntermediateState<JsonObject>
         {
-            return DefaultState.InvalidCredentials;
+            StatusCode = HttpStatusCode.BadRequest
+        };
+
+        if (authUser.Role > UserRole.Default)
+        {
+            iState.Model = DefaultState.NoRights;
+            return iState;
+        }
+        
+        if (_hashService.ComputePinCodeHash(body.PinCode) != authUser.PinCodeHash)
+        {
+            iState.Model = DefaultState.InvalidCredentials;
+            return iState;
         }
 
         await _dbContext.Users
-            .Where(dbUser => dbUser.Id == user.Id)
+            .Where(dbUser => dbUser.Id == authUser.Id)
             .ExecuteDeleteAsync();
 
-        return DefaultState.Ok;
-    }
+        iState.StatusCode = HttpStatusCode.OK;
+        iState.Model = DefaultState.Ok;
 
-    // I don't want to provide AuthService in UserController
-    public StateModel<UserAuthResponseModel> ParseResponseState(StateCode resultState, UserEntity? user)
-    {
-        if (resultState == StateCode.Ok)
-        {
-            var okState = StateModel<UserAuthResponseModel>.ParseOk(new UserAuthResponseModel
-            {
-                User = (UserPrivateModel)user!,
-                AuthToken = _authService.GenerateJwtToken(user!.Id.ToString())
-            });
-            
-            return okState;
-        }
-
-        
-        var errorState = new StateModel<UserAuthResponseModel>
-        {
-            Code = (int)resultState,
-            State = resultState.ToString()
-        };
-
-        return errorState;
+        return iState;
     }
     
     public async Task<bool> IsNicknameAvailable(string nickname) =>

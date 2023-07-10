@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using HelpMeApi.Chat.Entity.Json;
+using HelpMeApi.Chat.Entity.Object;
 using HelpMeApi.Chat.Model;
 using HelpMeApi.Topic.Entity;
 using HelpMeApi.Topic.Model;
@@ -29,10 +29,10 @@ public class ChatEntity
     public bool IsVerified { get; set; }
     
     [Column(TypeName = "jsonb[]")]
-    public List<ChatEntityBan> BannedUsers { get; set; } = null!;
+    public List<ChatEntityBan> BannedUsers { get; set; } = new();
     
     [Column(TypeName = "jsonb[]")]
-    public List<ChatEntityInvitation> InvitedUsers { get; set; } = null!;
+    public List<ChatEntityInvitation> InvitedUsers { get; set; } = new();
 
     public ChatEntity()
     {

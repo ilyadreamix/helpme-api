@@ -113,4 +113,10 @@ public static class DefaultState
         Code = (int)StateCode.UnbanUserToInvite,
         State = StateCode.UnbanUserToInvite.ToString()
     };
+    
+    public static readonly StateModel<JsonObject> ConnectionDoesNotExist = new()
+    {
+        Code = (int)StateCode.ConnectionDoesNotExist,
+        State = StateCode.ConnectionDoesNotExist.ToString()
+    };
 }

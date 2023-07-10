@@ -20,18 +20,20 @@ public class UserEntity
     public string GoogleId { get; set; } = null!;
     public string Email { get; set; } = null!;
     public string PinCodeHash { get; set; } = null!;
-    
-    public long CreatedAt { get; set; }
-    public long LastSignedInAt { get; set; }
-    
+
     public string Nickname { get; set; } = null!;
     public int? Age { get; set; }
     public bool IsHidden { get; set; }
+    
+    public long CreatedAt { get; set; }
+    public long LastSignedInAt { get; set; }
+    public long LastOnlineAt { get; set; }
 
     public UserEntity()
     {
         CreatedAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
         LastSignedInAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        LastOnlineAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
     }
 
     public static explicit operator UserPrivateModel(UserEntity entity) => new()
@@ -43,7 +45,8 @@ public class UserEntity
         LastSignedInAt = entity.LastSignedInAt,
         Nickname = entity.Nickname,
         Age = entity.Age,
-        IsHidden = entity.IsHidden
+        IsHidden = entity.IsHidden,
+        LastOnlineAt = entity.LastOnlineAt
     };
     
     public static explicit operator UserPublicModel(UserEntity entity) => new()
@@ -52,8 +55,8 @@ public class UserEntity
         IsBanned = entity.IsBanned,
         Role = entity.Role,
         CreatedAt = entity.CreatedAt,
-        LastSignedInAt = entity.LastSignedInAt,
         Nickname = entity.Nickname,
-        IsHidden = entity.IsHidden
+        IsHidden = entity.IsHidden,
+        LastOnlineAt = entity.LastOnlineAt
     };
 }

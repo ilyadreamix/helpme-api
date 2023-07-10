@@ -25,11 +25,11 @@ public class ApplicationDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<UserEntity>()
-            .HasMany(a => a.Chats)
+            .HasMany(u => u.Chats)
             .WithMany(c => c.JoinedUsers)
             .UsingEntity<UserChatRelationEntity>(
-                j => j.HasOne(ac => ac.Chat).WithMany(),
-                j => j.HasOne(ac => ac.User).WithMany())
+                j => j.HasOne(uc => uc.Chat).WithMany(),
+                j => j.HasOne(uc => uc.User).WithMany())
             .ToTable("UserChatRelation");
 
         modelBuilder.Entity<ChatEntity>()

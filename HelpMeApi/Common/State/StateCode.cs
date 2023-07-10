@@ -20,7 +20,7 @@ public enum StateCode
     YouAreBanned,
     NoRights,
     InvalidAction,
-    YouCantLimitYourself,
+    YouCannotPunishYourself,
     YouHaveAlreadyJoinedThisChat,
     YouAreBannedInThisChat,
     ThisChatIsDisabled,
@@ -28,5 +28,6 @@ public enum StateCode
     UserHasAlreadyJoinedThisChat,
     UserWasAlreadyInvited,
     YouCannotEditThisChat,
-    UnbanUserToInvite
+    UnbanUserToInvite,
+    ConnectionDoesNotExist
 }

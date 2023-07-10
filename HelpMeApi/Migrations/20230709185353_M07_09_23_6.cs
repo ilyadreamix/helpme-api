@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using HelpMeApi.Chat.Entity.Json;
+using HelpMeApi.Chat.Entity.Object;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable

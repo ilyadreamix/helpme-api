@@ -1,5 +1,7 @@
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using HelpMeApi.Common.Enum;
+using HelpMeApi.Common.Object;
 using HelpMeApi.Moderation.Enum;
 using HelpMeApi.Moderation.Model;
 using HelpMeApi.User.Entity;
@@ -18,7 +20,9 @@ public class ModerationEntity
     public Guid ObjectId { get; set; }
     public ObjectType ObjectType { get; set; }
     public ModerationAction Action { get; set; }
-    public List<string> Extras { get; set; } = new();
+    
+    [Column(TypeName = "jsonb[]")]
+    public List<Extra> Extras { get; set; } = new();
     
     public long CreatedAt { get; set; }
 

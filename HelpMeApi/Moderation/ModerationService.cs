@@ -1,7 +1,8 @@
 using System.Net;
-using HelpMeApi.Chat.Entity.Json;
+using HelpMeApi.Chat.Entity.Object;
 using HelpMeApi.Common;
 using HelpMeApi.Common.Enum;
+using HelpMeApi.Common.Object;
 using HelpMeApi.Common.State;
 using HelpMeApi.Common.State.Model;
 using HelpMeApi.Common.Utility;
@@ -27,23 +28,30 @@ public class ModerationService
         _contextAccessor = contextAccessor;
     }
 
-    public async Task<StateModel<ModerationModel>> Action(ModerationActionRequestModel body) =>
+    public async Task<IntermediateState<ModerationModel>> Action(ModerationActionRequestModel body) =>
         await _PerformAction(
             objectId: Guid.Parse(body.ObjectId),
             objectType: body.ObjectType,
             action: body.Action,
             extras: body.Extras);
 
-    public async Task<StateModel<ModerationModel>> Get(Guid id)
+    public async Task<IntermediateState<ModerationModel>> Get(Guid id)
     {
+        var iState = new IntermediateState<ModerationModel>()
+        {
+            StatusCode = HttpStatusCode.BadRequest
+        };
+        
         var moderation = await _dbContext.Moderations.FindAsync(id);
         if (moderation != null)
         {
-            return StateModel<ModerationModel>.ParseOk((ModerationModel)moderation);
+            iState.StatusCode = HttpStatusCode.OK;
+            iState.Model = StateModel<ModerationModel>.ParseOk((ModerationModel)moderation);
+            return iState;
         }
-        
-        _contextAccessor.HttpContext!.Response.StatusCode = (int)HttpStatusCode.BadRequest;
-        return StateModel<ModerationModel>.ParseFrom(StateCode.ContentNotFound);
+
+        iState.Model = StateModel<ModerationModel>.ParseFrom(StateCode.ContentNotFound);
+        return iState;
     }
 
     public async Task<StateModel<List<ModerationModel>>> List(
@@ -78,13 +86,17 @@ public class ModerationService
         return StateModel<List<ModerationModel>>.ParseOk(models);
     }
     
-    private async Task<StateModel<ModerationModel>> _PerformAction(
+    private async Task<IntermediateState<ModerationModel>> _PerformAction(
         Guid objectId,
         ObjectType objectType,
-        List<string> extras,
+        List<Extra> extras,
         ModerationAction action)
     {
         var moderator = (UserEntity)_contextAccessor.HttpContext!.Items["User"]!;
+        var iState = new IntermediateState<ModerationModel>
+        {
+            StatusCode = HttpStatusCode.BadRequest
+        };
         
         switch (objectType)
         {
@@ -92,8 +104,8 @@ public class ModerationService
                 var user = await _dbContext.Users.FindAsync(objectId);
                 if (user == null)
                 {
-                    _contextAccessor.HttpContext!.Response.StatusCode = (int)HttpStatusCode.BadRequest;
-                    return StateModel<ModerationModel>.ParseFrom(StateCode.ContentNotFound);
+                    iState.Model = StateModel<ModerationModel>.ParseFrom(StateCode.ContentNotFound);
+                    return iState;
                 }
                 
                 switch (action)
@@ -101,15 +113,17 @@ public class ModerationService
                     case ModerationAction.Ban:
                         if (moderator.Id == user.Id) // This can only be attempted by third party clients
                         {
-                            _contextAccessor.HttpContext!.Response.StatusCode = (int)HttpStatusCode.Forbidden;
-                            return StateModel<ModerationModel>.ParseFrom(StateCode.YouCantLimitYourself);
+                            iState.StatusCode = HttpStatusCode.Forbidden;
+                            iState.Model = StateModel<ModerationModel>.ParseFrom(StateCode.YouCannotPunishYourself);
+                            return iState;
                         }
                         
                         if (moderator.Role == UserRole.Moderator &&
                             user.Role > UserRole.Default)
                         {
-                            _contextAccessor.HttpContext!.Response.StatusCode = (int)HttpStatusCode.Forbidden;
-                            return StateModel<ModerationModel>.ParseFrom(StateCode.NoRights);
+                            iState.StatusCode = HttpStatusCode.Forbidden;
+                            iState.Model = StateModel<ModerationModel>.ParseFrom(StateCode.NoRights);
+                            return iState;
                         }
                         
                         user.IsBanned = true;
@@ -119,8 +133,9 @@ public class ModerationService
                         if (moderator.Role == UserRole.Moderator &&
                             user.Role > UserRole.Default)
                         {
-                            _contextAccessor.HttpContext!.Response.StatusCode = (int)HttpStatusCode.Forbidden;
-                            return StateModel<ModerationModel>.ParseFrom(StateCode.NoRights);
+                            iState.StatusCode = HttpStatusCode.Forbidden;
+                            iState.Model = StateModel<ModerationModel>.ParseFrom(StateCode.NoRights);
+                            return iState;
                         }
                         
                         user.IsBanned = false;
@@ -129,15 +144,17 @@ public class ModerationService
                     case ModerationAction.Hide:
                         if (moderator.Id == user.Id) // This can only be attempted by third party clients
                         {
-                            _contextAccessor.HttpContext!.Response.StatusCode = (int)HttpStatusCode.Forbidden;
-                            return StateModel<ModerationModel>.ParseFrom(StateCode.YouCantLimitYourself);
+                            iState.StatusCode = HttpStatusCode.Forbidden;
+                            iState.Model = StateModel<ModerationModel>.ParseFrom(StateCode.YouCannotPunishYourself);
+                            return iState;
                         }
                         
                         if (moderator.Role == UserRole.Moderator &&
                             user.Role > UserRole.Default)
                         {
-                            _contextAccessor.HttpContext!.Response.StatusCode = (int)HttpStatusCode.Forbidden;
-                            return StateModel<ModerationModel>.ParseFrom(StateCode.NoRights);
+                            iState.StatusCode = HttpStatusCode.Forbidden;
+                            iState.Model = StateModel<ModerationModel>.ParseFrom(StateCode.NoRights);
+                            return iState;
                         }
                         
                         user.IsHidden = true;
@@ -147,16 +164,17 @@ public class ModerationService
                         if (moderator.Role == UserRole.Moderator &&
                             user.Role > UserRole.Default)
                         {
-                            _contextAccessor.HttpContext!.Response.StatusCode = (int)HttpStatusCode.Forbidden;
-                            return StateModel<ModerationModel>.ParseFrom(StateCode.NoRights);
+                            iState.StatusCode = HttpStatusCode.Forbidden;
+                            iState.Model = StateModel<ModerationModel>.ParseFrom(StateCode.NoRights);
+                            return iState;
                         }
                         
                         user.IsHidden = false;
                         break;
                     
                     default:
-                        _contextAccessor.HttpContext!.Response.StatusCode = (int)HttpStatusCode.BadRequest;
-                        return StateModel<ModerationModel>.ParseFrom(StateCode.InvalidAction);
+                        iState.Model = StateModel<ModerationModel>.ParseFrom(StateCode.InvalidAction);
+                        return iState;
                 }
                 
                 var userModeration = new ModerationEntity
@@ -171,7 +189,10 @@ public class ModerationService
                 await _dbContext.Moderations.AddAsync(userModeration);
                 await _dbContext.SaveChangesAsync();
 
-                return StateModel<ModerationModel>.ParseOk((ModerationModel)userModeration);
+                iState.StatusCode = HttpStatusCode.OK;
+                iState.Model = StateModel<ModerationModel>.ParseOk((ModerationModel)userModeration);
+
+                return iState;
             
             case ObjectType.Chat:
                 var chat = await _dbContext.Chats
@@ -180,8 +201,8 @@ public class ModerationService
                 
                 if (chat == null)
                 {
-                    _contextAccessor.HttpContext!.Response.StatusCode = (int)HttpStatusCode.BadRequest;
-                    return StateModel<ModerationModel>.ParseFrom(StateCode.ContentNotFound);
+                    iState.Model = StateModel<ModerationModel>.ParseFrom(StateCode.ContentNotFound);
+                    return iState;
                 }
 
                 switch (action)
@@ -199,20 +220,27 @@ public class ModerationService
                         break;
                     
                     case ModerationAction.Ban:
-                        var userToBanId = extras.ElementAtOrDefault(0) ?? "none";
+                        var userToBanId = extras.Get("userId")?.Value ?? "none";
 
                         if (!Guid.TryParse(userToBanId, out var userToBanIdParsed))
                         {
-                            _contextAccessor.HttpContext!.Response.StatusCode = (int)HttpStatusCode.BadRequest;
-                            return StateModel<ModerationModel>.ParseFrom(StateCode.InvalidRequest);
+                            iState.Model = StateModel<ModerationModel>.ParseFrom(StateCode.InvalidRequest);
+                            return iState;
+                        }
+
+                        if (moderator.Id == userToBanIdParsed)
+                        {
+                            iState.StatusCode = HttpStatusCode.Forbidden;
+                            iState.Model = StateModel<ModerationModel>.ParseFrom(StateCode.YouCannotPunishYourself);
+                            return iState;
                         }
 
                         var userExists = chat.JoinedUsers.Any(dbUser => dbUser.Id == userToBanIdParsed);
 
                         if (!userExists)
                         {
-                            _contextAccessor.HttpContext!.Response.StatusCode = (int)HttpStatusCode.BadRequest;
-                            return StateModel<ModerationModel>.ParseFrom(StateCode.UserDoesNotExist);
+                            iState.Model = StateModel<ModerationModel>.ParseFrom(StateCode.UserDoesNotExist);
+                            return iState;
                         }
                         
                         chat.BannedUsers.Add(new ChatEntityBan
@@ -227,11 +255,12 @@ public class ModerationService
                         break;
                     
                     case ModerationAction.Unban:
-                        var userToUnbanId = extras.ElementAtOrDefault(0) ?? "none";
+                        var userToUnbanId = extras.Get("userId")?.Value ?? "none";
+                        
                         if (!Guid.TryParse(userToUnbanId, out var userToUnbanIdParsed))
                         {
-                            _contextAccessor.HttpContext!.Response.StatusCode = (int)HttpStatusCode.BadRequest;
-                            return StateModel<ModerationModel>.ParseFrom(StateCode.InvalidRequest);
+                            iState.Model = StateModel<ModerationModel>.ParseFrom(StateCode.InvalidRequest);
+                            return iState;
                         }
 
                         chat.BannedUsers = chat.BannedUsers
@@ -240,8 +269,8 @@ public class ModerationService
                         break;
                     
                     default:
-                        _contextAccessor.HttpContext!.Response.StatusCode = (int)HttpStatusCode.BadRequest;
-                        return StateModel<ModerationModel>.ParseFrom(StateCode.InvalidAction);
+                        iState.Model = StateModel<ModerationModel>.ParseFrom(StateCode.InvalidAction);
+                        return iState;
                 }
 
                 var chatModeration = new ModerationEntity
@@ -256,15 +285,18 @@ public class ModerationService
 
                 await _dbContext.Moderations.AddAsync(chatModeration);
                 await _dbContext.SaveChangesAsync();
+                
+                iState.StatusCode = HttpStatusCode.OK;
+                iState.Model = StateModel<ModerationModel>.ParseOk((ModerationModel)chatModeration);
 
-                return StateModel<ModerationModel>.ParseOk((ModerationModel)chatModeration);
+                return iState;
             
             case ObjectType.ChatMessage:
                 var message = await _dbContext.ChatMessages.FindAsync(objectId);
                 if (message == null)
                 {
-                    _contextAccessor.HttpContext!.Response.StatusCode = (int)HttpStatusCode.BadRequest;
-                    return StateModel<ModerationModel>.ParseFrom(StateCode.ContentNotFound);
+                    iState.Model = StateModel<ModerationModel>.ParseFrom(StateCode.ContentNotFound);
+                    return iState;
                 }
                 
                 switch (action)
@@ -276,8 +308,8 @@ public class ModerationService
                         break;
                     
                     default:
-                        _contextAccessor.HttpContext!.Response.StatusCode = (int)HttpStatusCode.BadRequest;
-                        return StateModel<ModerationModel>.ParseFrom(StateCode.InvalidAction);
+                        iState.Model = StateModel<ModerationModel>.ParseFrom(StateCode.InvalidAction);
+                        return iState;
                 }
 
                 var messageModeration = new ModerationEntity
@@ -291,15 +323,18 @@ public class ModerationService
 
                 await _dbContext.Moderations.AddAsync(messageModeration);
                 await _dbContext.SaveChangesAsync();
+                
+                iState.StatusCode = HttpStatusCode.OK;
+                iState.Model = StateModel<ModerationModel>.ParseOk((ModerationModel)messageModeration);
 
-                return StateModel<ModerationModel>.ParseOk((ModerationModel)messageModeration);
+                return iState;
             
             case ObjectType.Topic:
                 var topic = await _dbContext.Topics.FindAsync(objectId);
                 if (topic == null)
                 {
-                    _contextAccessor.HttpContext!.Response.StatusCode = (int)HttpStatusCode.BadRequest;
-                    return StateModel<ModerationModel>.ParseFrom(StateCode.ContentNotFound);
+                    iState.Model = StateModel<ModerationModel>.ParseFrom(StateCode.ContentNotFound);
+                    return iState;
                 }
                 
                 switch (action)
@@ -311,8 +346,8 @@ public class ModerationService
                         break;
                     
                     default:
-                        _contextAccessor.HttpContext!.Response.StatusCode = (int)HttpStatusCode.BadRequest;
-                        return StateModel<ModerationModel>.ParseFrom(StateCode.InvalidAction);
+                        iState.Model = StateModel<ModerationModel>.ParseFrom(StateCode.InvalidAction);
+                        return iState;
                 }
 
                 var topicModeration = new ModerationEntity
@@ -327,11 +362,11 @@ public class ModerationService
                 await _dbContext.Moderations.AddAsync(topicModeration);
                 await _dbContext.SaveChangesAsync();
 
-                return StateModel<ModerationModel>.ParseOk((ModerationModel)topicModeration);
+                return iState;
             
             default:
-                _contextAccessor.HttpContext!.Response.StatusCode = (int)HttpStatusCode.BadRequest;
-                return StateModel<ModerationModel>.ParseFrom(StateCode.InvalidRequest);
+                iState.Model = StateModel<ModerationModel>.ParseFrom(StateCode.InvalidRequest);
+                return iState;
         }
     }
 }

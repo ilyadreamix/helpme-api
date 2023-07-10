@@ -22,21 +22,23 @@ public class ModerationController : ControllerBase
     [HttpPost("action")]
     public async Task<IActionResult> Action([FromBody] ModerationActionRequestModel body)
     {
-        var state = await _moderationService.Action(body);
-        return new JsonResult(state);
+        var iState = await _moderationService.Action(body);
+        HttpContext.Response.StatusCode = (int)iState.StatusCode;
+        return new JsonResult(iState.Model);
     }
     
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> Get(Guid id)
     {
-        var state = await _moderationService.Get(id);
-        return new JsonResult(state);
+        var iState = await _moderationService.Get(id);
+        HttpContext.Response.StatusCode = (int)iState.StatusCode;
+        return new JsonResult(iState.Model);
     }
     
     [HttpGet("list")]
     public async Task<IActionResult> List(
         Guid objectId,
-        Guid moderatorId,
+        Guid? moderatorId,
         ModerationAction? action,
         int offset = 0,
         int size = 25,
