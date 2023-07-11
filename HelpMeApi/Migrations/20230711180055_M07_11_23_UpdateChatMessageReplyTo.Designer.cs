@@ -6,6 +6,7 @@ using HelpMeApi.Common;
 using HelpMeApi.Common.Object;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -14,9 +15,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace HelpMeApi.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20230711180055_M07_11_23_UpdateChatMessageReplyTo")]
+    partial class M07_11_23_UpdateChatMessageReplyTo
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -100,9 +103,6 @@ namespace HelpMeApi.Migrations
 
                     b.Property<long>("CreatedAt")
                         .HasColumnType("bigint");
-
-                    b.Property<List<Guid>>("MentionedUserIds")
-                        .HasColumnType("uuid[]");
 
                     b.Property<Guid?>("ReplyToId")
                         .HasColumnType("uuid");

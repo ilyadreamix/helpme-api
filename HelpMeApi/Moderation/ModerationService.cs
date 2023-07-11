@@ -37,12 +37,15 @@ public class ModerationService
 
     public async Task<IntermediateState<ModerationModel>> Get(Guid id)
     {
-        var iState = new IntermediateState<ModerationModel>()
+        var iState = new IntermediateState<ModerationModel>
         {
             StatusCode = HttpStatusCode.BadRequest
         };
         
-        var moderation = await _dbContext.Moderations.FindAsync(id);
+        var moderation = await _dbContext.Moderations
+            .Include(dbModeration => dbModeration.Moderator)
+            .FirstOrDefaultAsync(dbModeration => dbModeration.Id == id);
+        
         if (moderation != null)
         {
             iState.StatusCode = HttpStatusCode.OK;
@@ -64,6 +67,7 @@ public class ModerationService
     {
         var query = _dbContext.Moderations
             .AsQueryable()
+            .Include(moderation => moderation.Moderator)
             .Where(moderation => moderation.ObjectId == objectId);
 
         if (moderatorId != null)

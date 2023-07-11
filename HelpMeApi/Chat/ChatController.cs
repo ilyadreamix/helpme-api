@@ -1,6 +1,7 @@
 using HelpMeApi.Chat.Model;
 using HelpMeApi.Chat.Model.Request;
 using HelpMeApi.Common.Auth;
+using HelpMeApi.Common.Binder;
 using HelpMeApi.Common.Enum;
 using HelpMeApi.Common.State.Model;
 using Microsoft.AspNetCore.Mvc;
@@ -22,9 +23,19 @@ public class ChatController : ControllerBase
     [HttpPost("create")]
     public async Task<IActionResult> Create([FromBody] ChatCreateRequestModel body)
     {
-        var chat = await _service.CreateChat(body);
+        var chat = await _service.Create(body);
         var state = StateModel<ChatModel>.ParseOk(chat);
         return new JsonResult(state);
+    }
+    
+    [HttpPost("{id:guid}/edit")]
+    public async Task<IActionResult> Edit(
+        Guid id,
+        [FromBody] ChatUpdateRequestModel body)
+    {
+        var iState = await _service.Edit(id, body);
+        HttpContext.Response.StatusCode = (int)iState.StatusCode;
+        return new JsonResult(iState.Model);
     }
 
     [HttpGet("{id:guid}")]
@@ -37,7 +48,7 @@ public class ChatController : ControllerBase
 
     [HttpGet("list")]
     public async Task<IActionResult> List(
-        Guid? topicId,
+        [QueryList<Guid>] List<Guid>? topicIds,
         Guid? creatorId,
         string? title,
         int offset = 0,
@@ -45,7 +56,7 @@ public class ChatController : ControllerBase
         OrderingMethod orderingMethod = OrderingMethod.ByTime)
     {
         var state = await _service.List(
-            topicId: topicId,
+            topicIds: topicIds,
             creatorId: creatorId,
             title: title,
             offset: offset,
@@ -58,6 +69,14 @@ public class ChatController : ControllerBase
     public async Task<IActionResult> Join(Guid id)
     {
         var iState = await _service.Join(id);
+        HttpContext.Response.StatusCode = (int)iState.StatusCode;
+        return new JsonResult(iState.Model);
+    }
+
+    [HttpPost("{id:guid}/leave")]
+    public async Task<IActionResult> Leave(Guid id)
+    {
+        var iState = await _service.Leave(id);
         HttpContext.Response.StatusCode = (int)iState.StatusCode;
         return new JsonResult(iState.Model);
     }
@@ -89,6 +108,16 @@ public class ChatController : ControllerBase
         Guid userId)
     {
         var iState = await _service.UninviteUser(id, userId);
+        HttpContext.Response.StatusCode = (int)iState.StatusCode;
+        return new JsonResult(iState.Model);
+    }
+    
+    [HttpPost("{id:guid}/message")]
+    public async Task<IActionResult> SendMessage(
+        Guid id,
+        [FromBody] ChatSendMessageRequestModel body)
+    {
+        var iState = await _service.SendMessage(id, body);
         HttpContext.Response.StatusCode = (int)iState.StatusCode;
         return new JsonResult(iState.Model);
     }

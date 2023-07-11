@@ -1,6 +1,8 @@
 using System.ComponentModel.DataAnnotations;
 using HelpMeApi.Chat.Enum;
+using HelpMeApi.Chat.Model;
 using HelpMeApi.User.Entity;
+using HelpMeApi.User.Model;
 
 namespace HelpMeApi.Chat.Entity;
 
@@ -19,8 +21,24 @@ public class ChatMessageEntity
     public string? Content { get; set; }
     public long CreatedAt { get; set; }
 
+    public List<Guid>? MentionedUserIds { get; set; } = null;
+    public Guid? ReplyToId { get; set; }
+    public ChatMessageEntity? ReplyTo { get; set; } = null;
+
     public ChatMessageEntity()
     {
         CreatedAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
     }
+    
+    public static explicit operator ChatMessageModel(ChatMessageEntity entity) => new()
+    {
+        Id = entity.Id,
+        Author = (UserPublicModel)entity.Author,
+        Type = entity.Type,
+        Content = entity.Content,
+        CreatedAt = entity.CreatedAt,
+        ReplyToId = entity.ReplyToId,
+        ReplyTo = entity.ReplyTo == null ? null : (ChatMessageModel)entity.ReplyTo,
+        MentionedUserIds = entity.MentionedUserIds
+    };
 }

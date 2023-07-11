@@ -9,7 +9,7 @@ using Microsoft.Net.Http.Headers;
 namespace HelpMeApi.Common.Auth;
 
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method)]
-public class AuthRequired : Attribute
+public class AuthRequiredAttribute : Attribute
 {
     public bool ForbidBanned { get; set; } = true;
     public UserRole[] Roles { get; set; } = { UserRole.Default, UserRole.Moderator, UserRole.Support };
@@ -30,7 +30,7 @@ public class AuthMiddleware
         ApplicationDbContext dbContext)
     {
         var endpoint = context.GetEndpoint();
-        var decorator = endpoint?.Metadata.GetMetadata<AuthRequired>();
+        var decorator = endpoint?.Metadata.GetMetadata<AuthRequiredAttribute>();
 
         if (decorator is null)
         {

@@ -1,9 +1,9 @@
 using HelpMeApi.Chat.Model;
 using HelpMeApi.User.Model;
 
-namespace HelpMeApi.WebSocket.Model.Chat;
+namespace HelpMeApi.Ws.Model.Chat;
 
-public class WebSocketChatInvite
+public class WsChatInvite
 {
     public ChatModel Chat { get; set; } = null!;
     public UserPublicModel Sender { get; set; } = null!;

@@ -29,5 +29,6 @@ public enum StateCode
     UserWasAlreadyInvited,
     YouCannotEditThisChat,
     UnbanUserToInvite,
-    ConnectionDoesNotExist
+    ConnectionDoesNotExist,
+    YouHaveNotJoinedThisChat
 }

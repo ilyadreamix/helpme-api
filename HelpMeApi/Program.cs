@@ -7,7 +7,7 @@ using HelpMeApi.Common.Hash;
 using HelpMeApi.Common.Middleware;
 using HelpMeApi.Moderation;
 using HelpMeApi.User;
-using HelpMeApi.WebSocket;
+using HelpMeApi.Ws;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -31,8 +31,8 @@ services.AddScoped<UserService>();
 services.AddScoped<ChatService>();
 services.AddScoped<ModerationService>();
 
-services.AddSingleton<WebSocketConnectionManager>();
-services.AddSingleton<WebSocketService>();
+services.AddSingleton<WsConnectionManager>();
+services.AddSingleton<WsService>();
 
 services
     .AddControllers()

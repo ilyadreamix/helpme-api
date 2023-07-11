@@ -1,21 +1,21 @@
-using HelpMeApi.WebSocket.Enum;
+using HelpMeApi.Ws.Enum;
 
-namespace HelpMeApi.WebSocket.Model;
+namespace HelpMeApi.Ws.Model;
 
-public class WebSocketMessage <T>
+public class WsMessage <T>
 {
     public int Type { get; set; }
-    public string TypeName { get; set; }
+    public string TypeName { get; set; } = null!;
     public T? Data { get; set; }
     public long Timestamp { get; set; }
 
-    public WebSocketMessage()
+    public WsMessage()
     {
         Timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
     }
 
-    public static WebSocketMessage<T> With(
-        WebSocketMessageType type,
+    public static WsMessage<T> With(
+        WsMessageType type,
         T data) => new()
     {
         Type = (int)type,

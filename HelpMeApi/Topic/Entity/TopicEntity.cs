@@ -14,10 +14,19 @@ public class TopicEntity
 
     public List<ChatEntity> Chats { get; set; } = new();
     public List<UserEntity> Users { get; set; } = new();
+    public bool IsReadOnly { get; set; }
+    public long CreatedAt { get; set; }
+
+    public TopicEntity()
+    {
+        CreatedAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+    }
     
     public static explicit operator TopicModel(TopicEntity entity) => new()
     {
         Id = entity.Id,
-        Name = entity.Name
+        Name = entity.Name,
+        IsReadOnly = entity.IsReadOnly,
+        CreatedAt = entity.CreatedAt
     };
 }

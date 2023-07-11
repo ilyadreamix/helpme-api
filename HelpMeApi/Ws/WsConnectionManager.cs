@@ -1,12 +1,12 @@
 using System.Collections.Concurrent;
 
-namespace HelpMeApi.WebSocket;
+namespace HelpMeApi.Ws;
 
-public class WebSocketConnectionManager
+public class WsConnectionManager
 {
-    public readonly ConcurrentDictionary<Guid, WebSocketConnection> Connections = new();
+    public readonly ConcurrentDictionary<Guid, WsConnection> Connections = new();
 
-    public void Add(Guid userId, WebSocketConnection connection)
+    public void Add(Guid userId, WsConnection connection)
     {
         Connections.TryAdd(userId, connection);
     }
@@ -16,7 +16,7 @@ public class WebSocketConnectionManager
         Connections.TryRemove(userId, out _);
     }
 
-    public WebSocketConnection? Get(Guid userId)
+    public WsConnection? Get(Guid userId)
     {
         Connections.TryGetValue(userId, out var connection);
         return connection;
@@ -26,7 +26,7 @@ public class WebSocketConnectionManager
     {
         return Connections.ContainsKey(userId);
     }
-
+    
     public void UpdateTimestamp(Guid userId)
     {
         var connection = Get(userId);

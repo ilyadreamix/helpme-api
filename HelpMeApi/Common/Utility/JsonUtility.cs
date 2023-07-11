@@ -1,38 +1,26 @@
 using System.Text;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Serialization;
+using System.Text.Encodings.Web;
+using System.Text.Json;
 
 namespace HelpMeApi.Common.Utility;
 
 public static class JsonSerializerUtility
 {
-    public static string SerializeObject(this object obj)
+    private static readonly JsonSerializerOptions Options = new JsonSerializerOptions
     {
-        var settings = new JsonSerializerSettings
-        {
-            ContractResolver = new CamelCasePropertyNamesContractResolver()
-        };
-
-        return JsonConvert.SerializeObject(obj, settings);
-    }
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+    };
     
+    public static string SerializeObject(this object obj) =>
+        JsonSerializer.Serialize(obj, Options);
+
     public static byte[] SerializeObjectToByteArray(this object obj)
     {
-        var json = JsonConvert.SerializeObject(obj, Formatting.None, new JsonSerializerSettings
-        {
-            ContractResolver = new CamelCasePropertyNamesContractResolver()
-        });
-
+        var json = JsonSerializer.Serialize(obj, Options);
         return Encoding.UTF8.GetBytes(json);
     }
 
-    public static T? DeserializeObject<T>(this string json)
-    {
-        var settings = new JsonSerializerSettings
-        {
-            ContractResolver = new CamelCasePropertyNamesContractResolver()
-        };
-
-        return JsonConvert.DeserializeObject<T>(json, settings);
-    }
+    public static T? DeserializeObject<T>(this string json) =>
+        JsonSerializer.Deserialize<T>(json, Options);
 }
