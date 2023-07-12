@@ -2,6 +2,7 @@ using System.Text.Json;
 using HelpMeApi.Chat;
 using HelpMeApi.Common;
 using HelpMeApi.Common.Auth;
+using HelpMeApi.Common.Filter;
 using HelpMeApi.Common.GoogleOAuth;
 using HelpMeApi.Common.Hash;
 using HelpMeApi.Common.Middleware;
@@ -41,11 +42,26 @@ services
         options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
     });
 services.ConfigureValidationErrorHandler();
+services.AddSwaggerGen(options =>
+{
+    options.SchemaFilter<SwaggerEnumFilter>();
+    options.OperationFilter<SwaggerAuthFilter>();
+});
 
 var application = builder.Build();
 
 application.ConfigureExceptionHandler();
 application.ConfigureClientErrorHandler();
+
+if (application.Environment.IsDevelopment())
+{
+    application.UseSwagger();
+    application.UseSwaggerUI(options =>
+    {
+        options.SwaggerEndpoint("/swagger/v1/swagger.json", "v1");
+        options.RoutePrefix = "docs";
+    });
+}
         
 // application.UseHttpsRedirection();
 application.UseRouting();

@@ -15,7 +15,6 @@ using HelpMeApi.Topic.Entity;
 using HelpMeApi.User.Entity;
 using HelpMeApi.User.Model;
 using HelpMeApi.Ws;
-using Microsoft.AspNetCore.Mvc.Routing;
 using Microsoft.EntityFrameworkCore;
 
 namespace HelpMeApi.Chat;
@@ -144,6 +143,10 @@ public class ChatService
         var query = _dbContext.Chats
             .Include(chat => chat.Topics)
             .Include(chat => chat.Creator)
+            .Include(chat => chat.Messages
+                .OrderByDescending(message => message.CreatedAt)
+                .Take(5))
+            .ThenInclude(message => message.ReplyTo)
             .AsQueryable();
 
         if (topicIds != null)
@@ -187,6 +190,10 @@ public class ChatService
         var chat = await _dbContext.Chats
             .Include(dbChat => dbChat.Creator)      
             .Include(dbChat => dbChat.Topics)
+            .Include(chat => chat.Messages
+                .OrderByDescending(message => message.CreatedAt)
+                .Take(5))
+            .ThenInclude(message => message.ReplyTo)
             .FirstOrDefaultAsync(dbChat => dbChat.Id == id);
         
         if (chat == null)
@@ -483,6 +490,12 @@ public class ChatService
                     model: StateModel<ChatSendMessageResponseModel>.ParseFrom(StateCode.ContentNotFound));
             }
 
+            if (!ReplyableMessageTypes.Contains(replyMessage.Type))
+            {
+                return iState.Copy(
+                    model: StateModel<ChatSendMessageResponseModel>.ParseFrom(StateCode.InvalidRequest));
+            }
+
             message.ReplyToId = replyMessage.Id;
         }
 
@@ -498,5 +511,44 @@ public class ChatService
             Chat = (ChatModel)chat,
             Message = (ChatMessageModel)message
         }));
+    }
+
+    public async Task<StateModel<List<ChatModel>>> MyChats(
+        List<Guid>? topicIds,
+        int offset,
+        int size,
+        OrderingMethod orderingMethod)
+    {
+        var user = (UserEntity)_contextAccessor.HttpContext!.Items["User"]!;
+        var query = _dbContext.Chats
+            .Include(chat => chat.Creator)
+            .Include(chat => chat.Topics)
+            .Include(chat => chat.Messages
+                .OrderByDescending(message => message.CreatedAt)
+                .Take(5))
+            .ThenInclude(message => message.ReplyTo)
+            .Where(chat => chat.JoinedUsers.Any(joinedUser => joinedUser.Id == user.Id));
+
+        if (topicIds != null)
+        {
+            query = topicIds.Aggregate(query, (current, topicId) =>
+                current.Where(chat =>
+                    chat.Topics.Any(topic => topic.Id == topicId)));
+        }
+
+        query = orderingMethod switch
+        {
+            OrderingMethod.ByName => query.OrderBy(chat => chat.Title),
+            _ => query.OrderByDescending(chat => chat.CreatedAt)
+        };
+        
+        var chats = await query
+            .Skip(offset.SafeOffset())
+            .Take(size.SafeSize(50))
+            .ToListAsync();
+        
+        var chatModels = chats.ConvertAll(chat => (ChatModel)chat);
+
+        return StateModel<List<ChatModel>>.ParseOk(chatModels);
     }
 }

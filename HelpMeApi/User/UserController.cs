@@ -1,6 +1,8 @@
 using HelpMeApi.Common.Auth;
 using HelpMeApi.Common.State;
 using HelpMeApi.Common.State.Model;
+using HelpMeApi.User.Entity;
+using HelpMeApi.User.Model;
 using HelpMeApi.User.Model.Request;
 using HelpMeApi.User.Model.Response;
 using Microsoft.AspNetCore.Mvc;
@@ -60,5 +62,23 @@ public class UserController : ControllerBase
             Available = isNicknameAvailable
         });
         return new JsonResult(state);
+    }
+
+    [HttpGet("me")]
+    [AuthRequired(ForbidBanned = false)]
+    public IActionResult Me()
+    {
+        var user = (UserEntity)HttpContext.Items["User"]!;
+        var state = StateModel<UserPrivateModel>.ParseOk((UserPrivateModel)user);
+        return new JsonResult(state);
+    }
+
+    [HttpGet("{id:guid}")]
+    [AuthRequired]
+    public async Task<IActionResult> Get(Guid id)
+    {
+        var iState = await _userService.Get(id);
+        HttpContext.Response.StatusCode = (int)iState.StatusCode;
+        return new JsonResult(iState.Model);
     }
 }

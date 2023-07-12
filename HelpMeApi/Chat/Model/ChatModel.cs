@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using HelpMeApi.Topic.Model;
 using HelpMeApi.User.Model;
 
@@ -9,6 +10,9 @@ public class ChatModel
     
     public UserPublicModel Creator { get; set; } = null!;
     public List<TopicModel> Topics { get; set; } = new();
+    
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public List<ChatMessageModel>? LastMessages { get; set; } = null;
     
     public string Title { get; set; } = null!;
     public string? Description { get; set; }

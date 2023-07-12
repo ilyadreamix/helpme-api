@@ -65,6 +65,21 @@ public class ChatController : ControllerBase
         return new JsonResult(state);
     }
     
+    [HttpGet("list/joined-me")]
+    public async Task<IActionResult> MyChats(
+        [QueryList<Guid>] List<Guid>? topicIds,
+        int offset = 0,
+        int size = 50,
+        OrderingMethod orderingMethod = OrderingMethod.ByTime)
+    {
+        var state = await _service.MyChats(
+            topicIds: topicIds,
+            offset: offset,
+            size: size,
+            orderingMethod: orderingMethod);
+        return new JsonResult(state);
+    }
+    
     [HttpPost("{id:guid}/join")]
     public async Task<IActionResult> Join(Guid id)
     {

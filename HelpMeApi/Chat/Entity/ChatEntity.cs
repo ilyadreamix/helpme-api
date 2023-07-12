@@ -49,6 +49,7 @@ public class ChatEntity
         CreatedAt = entity.CreatedAt,
         IsHidden = entity.IsHidden,
         IsPublic = entity.IsPublic,
-        IsVerified = entity.IsVerified
+        IsVerified = entity.IsVerified,
+        LastMessages = entity.Messages.ConvertAll(message => (ChatMessageModel)message)
     };
 }

@@ -22,7 +22,6 @@ public class UserService
     private readonly HashService _hashService;
     private readonly AuthService _authService;
     private readonly IHttpContextAccessor _contextAccessor;
-
     public UserService(
         ApplicationDbContext dbContext,
         GoogleOAuthService oauthService,
@@ -189,6 +188,23 @@ public class UserService
         iState.Model = DefaultState.Ok;
 
         return iState;
+    }
+
+    public async Task<IntermediateState<UserPublicModel>> Get(Guid id)
+    {
+        var iState = new IntermediateState<UserPublicModel>
+        {
+            StatusCode = HttpStatusCode.BadRequest
+        };
+        
+        var user = await _dbContext.Users.FindAsync(id);
+        if (user == null)
+        {
+            return iState.Copy(
+                model: StateModel<UserPublicModel>.ParseFrom(StateCode.ContentNotFound));
+        }
+
+        return iState.Ok(StateModel<UserPublicModel>.ParseOk((UserPublicModel)user));
     }
     
     public async Task<bool> IsNicknameAvailable(string nickname) =>
